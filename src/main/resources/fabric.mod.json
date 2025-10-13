@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "adventurers-respawns",
+  "version": "${version}",
+  "name": "Adventurers Respawns",
+  "description": "Makes you respawn at a random nearby structure instead of a spawnpoint",
+  "authors": [],
+  "contact": {},
+  "license": "unlicense",
+  "icon": "assets/adventurers-respawns/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": [
+      "io.github.strikeless.adventurersrespawns.client.AdventurersRespawnsDataGenerator"
+    ],
+    "client": [
+      "io.github.strikeless.adventurersrespawns.client.AdventurersRespawnsClient"
+    ],
+    "main": [
+      "io.github.strikeless.adventurersrespawns.AdventurersRespawns"
+    ],
+    "modmenu": [
+      "io.github.strikeless.adventurersrespawns.client.config.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "adventurers-respawns.mixins.json",
+    {
+      "config": "adventurers-respawns.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}",
+    "yet_another_config_lib_v3": ">=3.6.1+1.21.2-fabric"
+  }
+}
