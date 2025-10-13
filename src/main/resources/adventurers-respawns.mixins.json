@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.strikeless.adventurersrespawns.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "PlayerManager",
+    "ServerPlayerEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
