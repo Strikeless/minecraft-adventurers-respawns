@@ -17,7 +17,7 @@ public class AdventurersRespawns implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        var configLoadedSuccessfully = AdventurersRespawnsConfig.HANDLER.load();
+        final var configLoadedSuccessfully = AdventurersRespawnsConfig.HANDLER.load();
         if (!configLoadedSuccessfully) LOGGER.error("Couldn't load mod config with YACL");
     }
 }

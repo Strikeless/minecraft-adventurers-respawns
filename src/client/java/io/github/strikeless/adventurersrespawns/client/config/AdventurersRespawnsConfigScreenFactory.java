@@ -1,32 +1,24 @@
 package io.github.strikeless.adventurersrespawns.client.config;
 
 import dev.isxander.yacl3.api.*;
-import dev.isxander.yacl3.gui.controllers.ControllerPopupWidget;
 import dev.isxander.yacl3.impl.controller.IntegerSliderControllerBuilderImpl;
 import dev.isxander.yacl3.impl.controller.TickBoxControllerBuilderImpl;
 import io.github.strikeless.adventurersrespawns.AdventurersRespawns;
 import io.github.strikeless.adventurersrespawns.AdventurersRespawnsConfig;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-
-import java.awt.*;
-import java.net.URI;
-import java.nio.file.Paths;
-import java.util.List;
 
 public class AdventurersRespawnsConfigScreenFactory {
     public static Screen getConfigScreen(Screen parentScreen) {
-        var def = AdventurersRespawnsConfig.HANDLER.defaults();
-        var config = AdventurersRespawns.getConfig();
+        final var def = AdventurersRespawnsConfig.HANDLER.defaults();
+        final var config = AdventurersRespawns.getConfig();
 
         return YetAnotherConfigLib.createBuilder()
-                .title(Text.literal("Adventurers Respawns Configuration"))
+                .title(Text.literal("Adventurer's Respawns Configuration"))
                 .category(
                         ConfigCategory.createBuilder()
-                                .name(Text.literal("Adventurers Respawns Configuration"))
+                                .name(Text.literal("Adventurer's Respawns Configuration"))
                                 .group(
                                         OptionGroup.createBuilder()
                                                 .name(Text.literal("Respawn at structures"))
@@ -34,7 +26,9 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                         Option.<Boolean>createBuilder()
                                                                 .name(Text.literal("Enabled"))
                                                                 .description(OptionDescription.of(
-                                                                        Text.literal("Whether to respawn at a nearby fit structure (e.g. a village) instead of the vanilla spawnpoint.")
+                                                                        Text.literal("Whether to respawn at a nearby fit structure (e.g. a village) instead of the vanilla spawnpoint."),
+                                                                        Text.literal(""),
+                                                                        Text.literal("You may modify the structures the player can respawn at in the mod's configuration file.")
                                                                 ))
                                                                 .binding(def.respawnAtStructure, () -> config.respawnAtStructure, val -> config.respawnAtStructure = val)
                                                                 .controller(TickBoxControllerBuilderImpl::new)
@@ -42,26 +36,29 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                 )
                                                 .option(
                                                         Option.<Integer>createBuilder()
-                                                                .name(Text.literal("Closest structure fuzzy range (chunks)"))
+                                                                .name(Text.literal("Structure fuzzy range (chunks)"))
                                                                 .description(OptionDescription.of(
                                                                         Text.literal(
-                                                                                "The range in chunks from which a random fit structure will " +
-                                                                                        "be selected if many are present, instead of the very closest one."
+                                                                                "The extent in chunks from which a random fit structure will " +
+                                                                                        "be selected for spawning at, instead of the very closest one."
                                                                         ),
                                                                         Text.literal(""),
                                                                         Text.literal(
-                                                                                "Higher values can add variety to the spawn position whenever dying many times " +
-                                                                                        "in the same area, at the expense of potential chunk generation and the time it takes."
+                                                                                "Higher values can make you travel a bit for your dropped items " +
+                                                                                        "and may add variety to respawning if dying often in the same area."
                                                                         ),
                                                                         Text.literal(""),
+                                                                        Text.literal("Performance intensive upon respawning!").formatted(Formatting.GOLD, Formatting.BOLD),
                                                                         Text.literal(
-                                                                                "High values may hang the game for a while upon spawning due to chunk generation, " +
-                                                                                        "since every chunk within this range from the death position will be generated before spawning. " +
-                                                                                        "The amount of chunks needed grows fast, a value of 32 already requires 1024 nearby chunks not even accounting the vertical axis."
+                                                                                "Higher values may hang the game for a while upon spawning due to chunk generation, " +
+                                                                                        "since every chunk within this range from the death position will be at least partially generated before spawning."
+                                                                        ).formatted(Formatting.RED),
+                                                                        Text.literal(
+                                                                                "Even a value of 32 chunks can take seconds on a good computer in non-pregenerated worlds."
                                                                         ).formatted(Formatting.RED)
                                                                 ))
-                                                                .binding(def.closestStructureFuzzyRangeChunks, () -> config.closestStructureFuzzyRangeChunks, val -> config.closestStructureFuzzyRangeChunks = val)
-                                                                .controller(opt -> new IntegerSliderControllerBuilderImpl(opt).range(0, 256).step(1))
+                                                                .binding(def.structureFuzzyExtentChunks, () -> config.structureFuzzyExtentChunks, val -> config.structureFuzzyExtentChunks = val)
+                                                                .controller(opt -> new IntegerSliderControllerBuilderImpl(opt).range(0, 128).step(1))
                                                                 .build()
                                                 )
                                                 .build()
@@ -118,6 +115,7 @@ public class AdventurersRespawnsConfigScreenFactory {
                                 )
                                 .build()
                 )
+                .save(() -> AdventurersRespawnsConfig.HANDLER.save())
                 .build()
                 .generateScreen(parentScreen);
     }

@@ -26,14 +26,18 @@ public class AdventurersRespawnsConfig {
     public boolean respawnAtStructure = true;
 
     @SerialEntry
-    public int closestStructureFuzzyRangeChunks = 16;
+    public int structureFuzzyExtentChunks = 16;
 
     @SerialEntry
-    public int structureClosestBlockFuzziness = 256;
+    public int structureMaxSearchExtentChunks = 512;
 
     @SerialEntry
-    public List<Identifier> structureTags = new ArrayList<>(List.of(
-            Identifier.ofVanilla("village")
+    public List<String> structureIdentifiers = new ArrayList<>(List.of(
+            "minecraft:village",
+            "minecraft:igloo",
+            // Structures from the Dungeons and Taverns datapack
+            "nova_structures:taverns",
+            "nova_structures:witch_villa"
     ));
 
     @SerialEntry
@@ -43,16 +47,19 @@ public class AdventurersRespawnsConfig {
     public int respawnFoodLevel = 8;
 
     @SerialEntry
+    public float respawnSaturationLevel = 0.0F;
+
+    @SerialEntry
     public byte mapScale = 3;
 
     @SerialEntry
     public boolean giveDeathPositionMap = true;
 
     @SerialEntry
-    public String deathPositionMapName = "Point of death";
+    public String deathPositionMapName = "Death position";
 
     @SerialEntry
-    public boolean giveSpawnpointMap = true;
+    public boolean giveSpawnpointMap = false;
 
     @SerialEntry
     public String spawnpointMapName = "Home";
