@@ -4,7 +4,7 @@
   "package": "io.github.strikeless.adventurersrespawns.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "PlayerManager",
+    "PlayerManagerMixin",
     "ServerPlayerEntityMixin"
   ],
   "injectors": {
