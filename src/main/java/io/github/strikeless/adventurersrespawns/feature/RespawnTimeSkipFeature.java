@@ -18,9 +18,5 @@ public class RespawnTimeSkipFeature {
             var worldTime = world.getTimeOfDay();
             world.setTimeOfDay(worldTime + timeSkip);
         }
-
-        for (var i = 0; i < config.timeSkipSimulatedTicks; ++i) {
-            server.getTickManager().setStepTicks(config.timeSkipSimulatedTicks);
-        }
     }
 }

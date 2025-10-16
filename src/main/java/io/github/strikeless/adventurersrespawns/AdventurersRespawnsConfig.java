@@ -1,10 +1,12 @@
 package io.github.strikeless.adventurersrespawns;
 
 import com.google.gson.GsonBuilder;
+import dev.isxander.yacl3.api.NameableEnum;
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
@@ -23,22 +25,25 @@ public class AdventurersRespawnsConfig {
             .build();
 
     @SerialEntry
-    public boolean respawnAtStructure = true;
+    public boolean respawnAtStructures = true;
 
     @SerialEntry
-    public int structureFuzzyExtentChunks = 16;
+    public int respawnStructureFuzzyExtentChunks = 12;
 
     @SerialEntry
-    public int structureMaxSearchExtentChunks = 512;
+    public int respawnStructureMaxSearchExtentChunks = 512;
 
     @SerialEntry
-    public List<String> structureIdentifiers = new ArrayList<>(List.of(
-            "minecraft:village",
+    public List<String> respawnStructureIdentifiers = new ArrayList<>(List.of(
+            "minecraft:villages",
             "minecraft:igloo",
             // Structures from the Dungeons and Taverns datapack
             "nova_structures:taverns",
             "nova_structures:witch_villa"
     ));
+
+    @SerialEntry
+    public boolean respawnStructureIgnoreVerticalBoundsFix = false;
 
     @SerialEntry
     public int respawnHealth = 10;
@@ -73,6 +78,30 @@ public class AdventurersRespawnsConfig {
     @SerialEntry
     public long timeSkipMaxTime = 24000;
 
+    public enum DeathExperienceBehavior implements NameableEnum {
+        /// Don't alter behavior
+        Vanilla,
+
+        /// Always keep experience points upon death, even with keepInventory off.
+        Keep,
+
+        /// Always drop experience points upon death, even with keepInventory on.
+        Drop,
+
+        /// Always permanently lose experience points upon death, even with keepInventory on.
+        Destroy;
+
+        @Override
+        public Text getDisplayName() {
+            return switch (this) {
+                case Vanilla -> Text.literal("Vanilla");
+                case Keep -> Text.literal("Keep");
+                case Drop -> Text.literal("Drop");
+                case Destroy -> Text.literal("Destroy");
+            };
+        }
+    }
+
     @SerialEntry
-    public int timeSkipSimulatedTicks = 0;
+    public DeathExperienceBehavior deathExperienceBehavior = DeathExperienceBehavior.Vanilla;
 }
