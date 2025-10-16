@@ -1,6 +1,7 @@
 package io.github.strikeless.adventurersrespawns.feature;
 
 import io.github.strikeless.adventurersrespawns.AdventurersRespawns;
+import io.github.strikeless.adventurersrespawns.util.CallbackManager;
 import net.minecraft.block.BedBlock;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -16,11 +17,15 @@ import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.gen.structure.Structure;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.random.RandomGenerator;
 
 public class SpawnPositionFeature {
-    private static final List<Function<Integer, Boolean>> CURRENT_CHUNK_SEARCH_EXTENT_LISTENERS = new ArrayList<>();
+    public static final CallbackManager<SpawnChunkSearchStatus> CHUNK_SEARCH_STATUS_CALLBACK = new CallbackManager<>();
+
+    public record SpawnChunkSearchStatus(
+            Integer currentSearchExtent, // null when done is set!
+            boolean done
+    ) {}
 
     public static Optional<BlockPos> getSpawnPosition(ServerPlayerEntity player) {
         final var world = player.getServerWorld();
@@ -109,7 +114,8 @@ public class SpawnPositionFeature {
         final var playerChunkZ = ChunkSectionPos.getSectionCoord(player.getBlockZ());
 
         for (int chunkOffsetX = -searchExtentChunks; chunkOffsetX <= searchExtentChunks; ++chunkOffsetX) {
-            announceCurrentChunkSearchExtent(Math.abs(chunkOffsetX));
+            var currentSearchExtent = Math.abs(chunkOffsetX);
+            CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(currentSearchExtent, false));
 
             for (int chunkOffsetZ = -searchExtentChunks; chunkOffsetZ <= searchExtentChunks; ++chunkOffsetZ) {
                 final var chunkX = playerChunkX + chunkOffsetX;
@@ -122,6 +128,7 @@ public class SpawnPositionFeature {
             }
         }
 
+        CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(null, true));
         AdventurersRespawns.getLogger().debug("Found {} structures.", foundStructureBounds.size());
         return foundStructureBounds;
     }
@@ -134,7 +141,7 @@ public class SpawnPositionFeature {
 
         var currentSearchExtent = minSearchExtentChunks;
         while (currentSearchExtent < maxSearchExtentChunks) {
-            announceCurrentChunkSearchExtent(currentSearchExtent);
+            CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(currentSearchExtent, false));
 
             for (var chunkOffsetX = -currentSearchExtent; chunkOffsetX <= currentSearchExtent; ++chunkOffsetX) {
                 for (var chunkOffsetZ = -currentSearchExtent; chunkOffsetZ <= currentSearchExtent; ++chunkOffsetZ) {
@@ -150,6 +157,7 @@ public class SpawnPositionFeature {
                     final var chunkStructure = getChunkStructure(chunk, structureTypes);
 
                     if (chunkStructure.isPresent()) {
+                        CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(null, true));
                         return chunkStructure;
                     }
                 }
@@ -157,6 +165,7 @@ public class SpawnPositionFeature {
             currentSearchExtent += 1;
         }
 
+        CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(null, true));
         return Optional.empty();
     }
 
@@ -240,17 +249,5 @@ public class SpawnPositionFeature {
         // Block above must also be air, since the player is two blocks tall.
         final var blockStateAbove = world.getBlockState(pos.up());
         return blockStateAbove.isAir();
-    }
-
-    public static void registerCurrentChunkSearchExtentListener(Function<Integer, Boolean> listener) {
-        CURRENT_CHUNK_SEARCH_EXTENT_LISTENERS.add(listener);
-    }
-
-    public static void unregisterCurrentChunkSearchExtentListener(Function<Integer, Boolean> listener) {
-        CURRENT_CHUNK_SEARCH_EXTENT_LISTENERS.remove(listener);
-    }
-
-    private static void announceCurrentChunkSearchExtent(int extent) {
-        CURRENT_CHUNK_SEARCH_EXTENT_LISTENERS.removeIf(listener -> !listener.apply(extent));
     }
 }

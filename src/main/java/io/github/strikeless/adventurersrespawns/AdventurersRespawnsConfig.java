@@ -72,7 +72,4 @@ public class AdventurersRespawnsConfig {
 
     @SerialEntry
     public long timeSkipMaxTime = 24000;
-
-    @SerialEntry
-    public int timeSkipSimulatedTicks = 0;
 }
