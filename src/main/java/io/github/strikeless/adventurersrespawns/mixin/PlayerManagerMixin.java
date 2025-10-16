@@ -15,7 +15,7 @@ import java.util.Objects;
 
 @Mixin(PlayerManager.class)
 public abstract class PlayerManagerMixin {
-    @Inject(method = "respawnPlayer", at = @At("TAIL"))
+    @Inject(method = "respawnPlayer", at = @At("RETURN"))
     private void respawnPlayer(CallbackInfoReturnable<ServerPlayerEntity> info) {
         final var config = AdventurersRespawns.getConfig();
         final var respawnedPlayer = info.getReturnValue();
