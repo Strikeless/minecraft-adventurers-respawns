@@ -41,10 +41,10 @@ public class AdventurersRespawnsConfig {
     ));
 
     @SerialEntry
-    public int respawnHealth = 8;
+    public int respawnHealth = 10;
 
     @SerialEntry
-    public int respawnFoodLevel = 8;
+    public int respawnFoodLevel = 10;
 
     @SerialEntry
     public float respawnSaturationLevel = 0.0F;
@@ -63,4 +63,16 @@ public class AdventurersRespawnsConfig {
 
     @SerialEntry
     public String spawnpointMapName = "Home";
+
+    @SerialEntry
+    public boolean timeSkipOnRespawn = false;
+
+    @SerialEntry
+    public long timeSkipMinTime = 8000;
+
+    @SerialEntry
+    public long timeSkipMaxTime = 24000;
+
+    @SerialEntry
+    public int timeSkipSimulatedTicks = 0;
 }
