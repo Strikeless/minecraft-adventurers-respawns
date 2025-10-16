@@ -16,9 +16,12 @@ import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.gen.structure.Structure;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.random.RandomGenerator;
 
 public class SpawnPositionFeature {
+    private static final List<Function<Integer, Boolean>> CURRENT_CHUNK_SEARCH_EXTENT_LISTENERS = new ArrayList<>();
+
     public static Optional<BlockPos> getSpawnPosition(ServerPlayerEntity player) {
         final var world = player.getServerWorld();
 
@@ -106,13 +109,15 @@ public class SpawnPositionFeature {
         final var playerChunkZ = ChunkSectionPos.getSectionCoord(player.getBlockZ());
 
         for (int chunkOffsetX = -searchExtentChunks; chunkOffsetX <= searchExtentChunks; ++chunkOffsetX) {
+            announceCurrentChunkSearchExtent(Math.abs(chunkOffsetX));
+
             for (int chunkOffsetZ = -searchExtentChunks; chunkOffsetZ <= searchExtentChunks; ++chunkOffsetZ) {
                 final var chunkX = playerChunkX + chunkOffsetX;
                 final var chunkZ = playerChunkZ + chunkOffsetZ;
 
                 final var chunk = world.getChunk(chunkX, chunkZ, ChunkStatus.STRUCTURE_STARTS);
 
-                final var chunkStructure = getChunkStructure(world, chunk, structureTypes);
+                final var chunkStructure = getChunkStructure(chunk, structureTypes);
                 chunkStructure.ifPresent(foundStructureBounds::add);
             }
         }
@@ -124,26 +129,13 @@ public class SpawnPositionFeature {
     private static Optional<BlockBox> findClosestStructure(ServerPlayerEntity player, List<Structure> structureTypes, int minSearchExtentChunks, int maxSearchExtentChunks) {
         final var world = player.getServerWorld();
 
-        System.out.println("player pos " + player.getBlockX() + " " + player.getBlockZ());
-        System.out.println("death pos " + player.getLastDeathPos().orElse(null));
-        /*
-
-        alive at -495 71 -1369
-        player pos -495 -1369
-        death pos BlockPos{x=-495, y=71, z=-1369}
-
-        -43*16 => -688
-        -75*16 => -1200
-        688 - 495 => 193
-        1369 - 1200 => 169
-         */
-
         final var playerChunkX = ChunkSectionPos.getSectionCoord(player.getBlockX());
         final var playerChunkZ = ChunkSectionPos.getSectionCoord(player.getBlockZ());
 
         var currentSearchExtent = minSearchExtentChunks;
         while (currentSearchExtent < maxSearchExtentChunks) {
-            System.out.println("extent " + currentSearchExtent);
+            announceCurrentChunkSearchExtent(currentSearchExtent);
+
             for (var chunkOffsetX = -currentSearchExtent; chunkOffsetX <= currentSearchExtent; ++chunkOffsetX) {
                 for (var chunkOffsetZ = -currentSearchExtent; chunkOffsetZ <= currentSearchExtent; ++chunkOffsetZ) {
                     // Ugly way to filter chunks that have been checked in previous extent iterations, no need to recheck those.
@@ -151,13 +143,11 @@ public class SpawnPositionFeature {
                         continue;
                     }
 
-
                     final var chunkX = playerChunkX + chunkOffsetX;
                     final var chunkZ = playerChunkZ + chunkOffsetZ;
-                    System.out.println("    " + chunkX + " " + chunkZ);
 
                     final var chunk = world.getChunk(chunkX, chunkZ, ChunkStatus.STRUCTURE_STARTS);
-                    final var chunkStructure = getChunkStructure(world, chunk, structureTypes);
+                    final var chunkStructure = getChunkStructure(chunk, structureTypes);
 
                     if (chunkStructure.isPresent()) {
                         return chunkStructure;
@@ -170,15 +160,13 @@ public class SpawnPositionFeature {
         return Optional.empty();
     }
 
-    private static Optional<BlockBox> getChunkStructure(ServerWorld world, Chunk chunk, List<Structure> structureTypes) {
+    private static Optional<BlockBox> getChunkStructure(Chunk chunk, List<Structure> structureTypes) {
         final var chunkStructureStarts = chunk.getStructureStarts();
 
         for (final var structureStartEntry : chunkStructureStarts.entrySet()) {
             // NOTE: It's a Structure, not a StructureType, I just find this name more describing in this context.
             final var structureType = structureStartEntry.getKey();
             final var structureStart = structureStartEntry.getValue();
-
-            System.out.println(chunk.getPos() + " : " + world.getRegistryManager().getOrThrow(RegistryKeys.STRUCTURE).getKey(structureStart.getStructure()).get().getValue());
 
             if (structureTypes.contains(structureType)) {
                 AdventurersRespawns.getLogger().debug("Found structure '{}'.", structureType);
@@ -252,5 +240,17 @@ public class SpawnPositionFeature {
         // Block above must also be air, since the player is two blocks tall.
         final var blockStateAbove = world.getBlockState(pos.up());
         return blockStateAbove.isAir();
+    }
+
+    public static void registerCurrentChunkSearchExtentListener(Function<Integer, Boolean> listener) {
+        CURRENT_CHUNK_SEARCH_EXTENT_LISTENERS.add(listener);
+    }
+
+    public static void unregisterCurrentChunkSearchExtentListener(Function<Integer, Boolean> listener) {
+        CURRENT_CHUNK_SEARCH_EXTENT_LISTENERS.remove(listener);
+    }
+
+    private static void announceCurrentChunkSearchExtent(int extent) {
+        CURRENT_CHUNK_SEARCH_EXTENT_LISTENERS.removeIf(listener -> !listener.apply(extent));
     }
 }
