@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
@@ -24,6 +25,9 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity {
     @Shadow
     public abstract ServerWorld getServerWorld();
 
+    @Shadow
+    public abstract boolean isSpectator();
+
     public ServerPlayerEntityMixin(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
         super(world, pos, yaw, gameProfile);
     }
@@ -32,7 +36,7 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity {
     private void getRespawnTarget(CallbackInfoReturnable<TeleportTarget> info) {
         final var config = AdventurersRespawns.getConfig();
 
-        if (config.respawnAtStructure) {
+        if (config.respawnAtStructures) {
             final var respawnPos = SpawnPositionFeature.getSpawnPosition((ServerPlayerEntity) (Object) this);
 
             if (respawnPos.isPresent()) {
@@ -49,6 +53,28 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity {
                 ));
             } else {
                 AdventurersRespawns.getLogger().warn("No structure found for respawning. Falling back to vanilla behavior.");
+            }
+        }
+    }
+
+    @Inject(method = "copyFrom", at = @At("RETURN"))
+    private void copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo info) {
+        // PlayerEntity.getExperienceToDrop and PlayerEntity.shouldAlwaysDropExperience also related to this feature, found in PlayerEntityMixin.
+        if (!alive && !this.isSpectator()) {
+            var config = AdventurersRespawns.getConfig();
+
+            switch (config.deathExperienceBehavior) {
+                case Vanilla -> {}
+                case Keep -> {
+                    this.experienceLevel = oldPlayer.experienceLevel;
+                    this.totalExperience = oldPlayer.totalExperience;
+                    this.experienceProgress = oldPlayer.experienceProgress;
+                }
+                case Drop, Destroy -> {
+                    this.experienceLevel = 0;
+                    this.totalExperience = 0;
+                    this.experienceProgress = 0;
+                }
             }
         }
     }
