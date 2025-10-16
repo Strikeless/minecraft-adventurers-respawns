@@ -34,7 +34,7 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity {
 
         if (config.respawnAtStructure) {
             final var respawnPos = SpawnPositionFeature.getSpawnPosition((ServerPlayerEntity) (Object) this);
-            
+
             if (respawnPos.isPresent()) {
                 info.setReturnValue(new TeleportTarget(
                         this.getServerWorld(),

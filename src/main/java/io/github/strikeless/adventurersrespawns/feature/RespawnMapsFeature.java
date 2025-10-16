@@ -44,13 +44,10 @@ public class RespawnMapsFeature {
     private static ItemStack createDecoratedMap(ServerWorld world, BlockPos markerPos, RegistryEntry<MapDecorationType> decorationType, String mapName) {
         final var config = AdventurersRespawns.getConfig();
 
-        final var mapCenterX = markerPos.getX(); //RandomGenerator.getDefault().nextInt(-maxMapCenterOffset, maxMapCenterOffset);
-        final var mapCenterZ = markerPos.getZ(); //RandomGenerator.getDefault().nextInt(-maxMapCenterOffset, maxMapCenterOffset);
-
         final var mapItemStack = FilledMapItem.createMap(
                 world,
-                mapCenterX,
-                mapCenterZ,
+                markerPos.getX(),
+                markerPos.getZ(),
                 config.mapScale,
                 true, // Show decorations
                 true // Unlimited tracking (show player marker at borders even when out of map bounds)
@@ -60,9 +57,5 @@ public class RespawnMapsFeature {
         mapItemStack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(mapName));
 
         return mapItemStack;
-    }
-
-    private static int getMapScaleExtent(byte scale) {
-        return 128 * (1 << scale);
     }
 }

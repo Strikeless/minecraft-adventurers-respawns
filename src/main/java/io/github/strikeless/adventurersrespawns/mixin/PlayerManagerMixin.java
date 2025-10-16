@@ -2,6 +2,7 @@ package io.github.strikeless.adventurersrespawns.mixin;
 
 import io.github.strikeless.adventurersrespawns.AdventurersRespawns;
 import io.github.strikeless.adventurersrespawns.feature.RespawnMapsFeature;
+import io.github.strikeless.adventurersrespawns.feature.RespawnTimeSkipFeature;
 import io.github.strikeless.adventurersrespawns.feature.SpawnHealthAndFoodFeature;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -9,6 +10,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Objects;
 
 @Mixin(PlayerManager.class)
 public abstract class PlayerManagerMixin {
@@ -24,6 +27,11 @@ public abstract class PlayerManagerMixin {
         }
         if (config.giveSpawnpointMap) {
             RespawnMapsFeature.giveSpawnpointMap(respawnedPlayer);
+        }
+
+        if (config.timeSkipOnRespawn) {
+            var server = Objects.requireNonNull(respawnedPlayer.getServer());
+            RespawnTimeSkipFeature.applyTimeSkip(server);
         }
     }
 }
