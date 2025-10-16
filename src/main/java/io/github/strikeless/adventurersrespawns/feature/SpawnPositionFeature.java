@@ -123,8 +123,8 @@ public class SpawnPositionFeature {
 
                 final var chunk = world.getChunk(chunkX, chunkZ, ChunkStatus.STRUCTURE_STARTS);
 
-                final var chunkStructure = getChunkStructure(chunk, structureTypes);
-                chunkStructure.ifPresent(foundStructureBounds::add);
+                final var chunkFoundStructureBounds = getChunkStructure(chunk, structureTypes);
+                foundStructureBounds.addAll(chunkFoundStructureBounds);
             }
         }
 
@@ -154,11 +154,13 @@ public class SpawnPositionFeature {
                     final var chunkZ = playerChunkZ + chunkOffsetZ;
 
                     final var chunk = world.getChunk(chunkX, chunkZ, ChunkStatus.STRUCTURE_STARTS);
-                    final var chunkStructure = getChunkStructure(chunk, structureTypes);
+                    final var chunkFoundStructureBounds = getChunkStructure(chunk, structureTypes);
 
-                    if (chunkStructure.isPresent()) {
+                    if (!chunkFoundStructureBounds.isEmpty()) {
                         CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(null, true));
-                        return chunkStructure;
+
+                        var firstFoundStructureBounds = chunkFoundStructureBounds.getFirst();
+                        return Optional.of(firstFoundStructureBounds);
                     }
                 }
             }
@@ -169,8 +171,9 @@ public class SpawnPositionFeature {
         return Optional.empty();
     }
 
-    private static Optional<BlockBox> getChunkStructure(Chunk chunk, List<Structure> structureTypes) {
+    private static List<BlockBox> getChunkStructure(Chunk chunk, List<Structure> structureTypes) {
         final var chunkStructureStarts = chunk.getStructureStarts();
+        final var chunkFitStructureBounds = new ArrayList<BlockBox>();
 
         for (final var structureStartEntry : chunkStructureStarts.entrySet()) {
             // NOTE: It's a Structure, not a StructureType, I just find this name more describing in this context.
@@ -181,11 +184,11 @@ public class SpawnPositionFeature {
                 AdventurersRespawns.getLogger().debug("Found structure '{}'.", structureType);
 
                 final var structureBounds = structureStart.getBoundingBox();
-                return Optional.of(structureBounds);
+                chunkFitStructureBounds.add(structureBounds);
             }
         }
 
-        return Optional.empty();
+        return chunkFitStructureBounds;
     }
 
 
