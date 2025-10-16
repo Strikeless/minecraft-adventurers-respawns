@@ -2,6 +2,7 @@ package io.github.strikeless.adventurersrespawns.client.config;
 
 import dev.isxander.yacl3.api.*;
 import dev.isxander.yacl3.impl.controller.IntegerSliderControllerBuilderImpl;
+import dev.isxander.yacl3.impl.controller.LongSliderControllerBuilderImpl;
 import dev.isxander.yacl3.impl.controller.TickBoxControllerBuilderImpl;
 import io.github.strikeless.adventurersrespawns.AdventurersRespawns;
 import io.github.strikeless.adventurersrespawns.AdventurersRespawnsConfig;
@@ -109,6 +110,41 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                                 ))
                                                                 .binding(def.giveSpawnpointMap, () -> config.giveSpawnpointMap, val -> config.giveSpawnpointMap = val)
                                                                 .controller(TickBoxControllerBuilderImpl::new)
+                                                                .build()
+                                                )
+                                                .build()
+                                )
+                                .group(
+                                        OptionGroup.createBuilder()
+                                                .name(Text.literal("Time skip on respawn"))
+                                                .option(
+                                                        Option.<Boolean>createBuilder()
+                                                                .name(Text.literal("Enabled"))
+                                                                .description(OptionDescription.of(
+                                                                        Text.literal("Whether to enable skipping world time of day upon respawning.")
+                                                                ))
+                                                                .binding(def.timeSkipOnRespawn, () -> config.timeSkipOnRespawn, val -> config.timeSkipOnRespawn = val)
+                                                                .controller(TickBoxControllerBuilderImpl::new)
+                                                                .build()
+                                                )
+                                                .option(
+                                                        Option.<Long>createBuilder()
+                                                                .name(Text.literal("Minimum time skip"))
+                                                                .description(OptionDescription.of(
+                                                                        Text.literal("Minimum time to skip upon respawning.")
+                                                                ))
+                                                                .binding(def.timeSkipMinTime, () -> config.timeSkipMinTime, val -> config.timeSkipMinTime = val)
+                                                                .controller(opt -> new LongSliderControllerBuilderImpl(opt).range(0L, 48000L).step(100L))
+                                                                .build()
+                                                )
+                                                .option(
+                                                        Option.<Long>createBuilder()
+                                                                .name(Text.literal("Maximum time skip"))
+                                                                .description(OptionDescription.of(
+                                                                        Text.literal("Maximum time to skip upon respawning.")
+                                                                ))
+                                                                .binding(def.timeSkipMaxTime, () -> config.timeSkipMaxTime, val -> config.timeSkipMaxTime = val)
+                                                                .controller(opt -> new LongSliderControllerBuilderImpl(opt).range(0L, 24000L).step(100L))
                                                                 .build()
                                                 )
                                                 .build()
