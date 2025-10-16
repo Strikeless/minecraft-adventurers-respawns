@@ -25,22 +25,25 @@ public class AdventurersRespawnsConfig {
             .build();
 
     @SerialEntry
-    public boolean respawnAtStructure = true;
+    public boolean respawnAtStructures = true;
 
     @SerialEntry
-    public int structureFuzzyExtentChunks = 16;
+    public int respawnStructureFuzzyExtentChunks = 12;
 
     @SerialEntry
-    public int structureMaxSearchExtentChunks = 512;
+    public int respawnStructureMaxSearchExtentChunks = 512;
 
     @SerialEntry
-    public List<String> structureIdentifiers = new ArrayList<>(List.of(
-            "minecraft:village",
+    public List<String> respawnStructureIdentifiers = new ArrayList<>(List.of(
+            "minecraft:villages",
             "minecraft:igloo",
             // Structures from the Dungeons and Taverns datapack
             "nova_structures:taverns",
             "nova_structures:witch_villa"
     ));
+
+    @SerialEntry
+    public boolean respawnStructureIgnoreVerticalBoundsFix = false;
 
     @SerialEntry
     public int respawnHealth = 10;

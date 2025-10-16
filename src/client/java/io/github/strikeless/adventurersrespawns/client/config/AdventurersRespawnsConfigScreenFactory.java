@@ -32,7 +32,7 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                                         Text.empty(),
                                                                         Text.literal("You may modify the structures the player can respawn at in the mod's configuration file.")
                                                                 ))
-                                                                .binding(def.respawnAtStructure, () -> config.respawnAtStructure, val -> config.respawnAtStructure = val)
+                                                                .binding(def.respawnAtStructures, () -> config.respawnAtStructures, val -> config.respawnAtStructures = val)
                                                                 .controller(TickBoxControllerBuilderImpl::new)
                                                                 .build()
                                                 )
@@ -56,11 +56,37 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                                                         "since every chunk within this range from the death position will be at least partially generated before spawning."
                                                                         ).formatted(Formatting.RED),
                                                                         Text.literal(
-                                                                                "Even a value of 32 chunks can take seconds on a good computer in non-pregenerated worlds."
+                                                                                "Even a value of 32 chunks can take seconds on a good computer in non-pregenerated worlds, " +
+                                                                                        "depending on your world generator."
                                                                         ).formatted(Formatting.RED)
                                                                 ))
-                                                                .binding(def.structureFuzzyExtentChunks, () -> config.structureFuzzyExtentChunks, val -> config.structureFuzzyExtentChunks = val)
+                                                                .binding(def.respawnStructureFuzzyExtentChunks, () -> config.respawnStructureFuzzyExtentChunks, val -> config.respawnStructureFuzzyExtentChunks = val)
                                                                 .controller(opt -> new IntegerSliderControllerBuilderImpl(opt).range(0, 128).step(1))
+                                                                .build()
+                                                )
+                                                .option(
+                                                        Option.<Boolean>createBuilder()
+                                                                .name(
+                                                                        Text.literal("FLAWED FIX: ")
+                                                                                .append(Text.literal("Ignore structure vertical bounds"))
+                                                                                .formatted(Formatting.GRAY)
+                                                                )
+                                                                .description(OptionDescription.of(
+                                                                        Text.literal("Ignores the vertical bounds of structures when searching for a spawn position."),
+                                                                        Text.empty(),
+                                                                        Text.literal(
+                                                                                "This is a very flawed and hacky fix for a bug where a structure at a cliff may be far above or below " +
+                                                                                        "it's intended bounds, which can lead to the player spawning e.g. inside a cave below an igloo at a cliff."
+                                                                        ),
+                                                                        Text.empty(),
+                                                                        Text.literal("Leave this off unless you know you need it!").formatted(Formatting.GOLD, Formatting.BOLD),
+                                                                        Text.literal(
+                                                                                "In most cases, this option does more harm than good, possibly spawning you at the top of a tree " +
+                                                                                        "in structures with no beds, even if that structure is found far below ground surface level!"
+                                                                        ).formatted(Formatting.RED)
+                                                                ))
+                                                                .binding(def.respawnStructureIgnoreVerticalBoundsFix, () -> config.respawnStructureIgnoreVerticalBoundsFix, val -> config.respawnStructureIgnoreVerticalBoundsFix = val)
+                                                                .controller(TickBoxControllerBuilderImpl::new)
                                                                 .build()
                                                 )
                                                 .build()
