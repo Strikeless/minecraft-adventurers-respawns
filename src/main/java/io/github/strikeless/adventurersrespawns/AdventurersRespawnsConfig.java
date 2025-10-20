@@ -104,4 +104,22 @@ public class AdventurersRespawnsConfig {
 
     @SerialEntry
     public DeathExperienceBehavior deathExperienceBehavior = DeathExperienceBehavior.Vanilla;
+
+    public enum GivenCompassType implements NameableEnum {
+        None,
+        NormalCompass,
+        RecoveryCompass;
+
+        @Override
+        public Text getDisplayName() {
+            return switch (this) {
+                case None -> Text.literal("None");
+                case NormalCompass -> Text.literal("Normal compass");
+                case RecoveryCompass -> Text.literal("Recovery compass");
+            };
+        }
+    }
+
+    @SerialEntry
+    public GivenCompassType giveCompassType = GivenCompassType.None;
 }
