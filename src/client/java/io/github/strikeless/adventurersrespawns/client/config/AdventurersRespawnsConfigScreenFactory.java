@@ -142,7 +142,7 @@ public class AdventurersRespawnsConfigScreenFactory {
                                 )
                                 .group(
                                         OptionGroup.createBuilder()
-                                                .name(Text.literal("Assistance maps"))
+                                                .name(Text.literal("Assistance items"))
                                                 .option(
                                                         Option.<Boolean>createBuilder()
                                                                 .name(Text.literal("Give death position map"))
@@ -161,6 +161,25 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                                 ))
                                                                 .binding(def.giveSpawnpointMap, () -> config.giveSpawnpointMap, val -> config.giveSpawnpointMap = val)
                                                                 .controller(TickBoxControllerBuilderImpl::new)
+                                                                .build()
+                                                )
+                                                .option(
+                                                        Option.<AdventurersRespawnsConfig.GivenCompassType>createBuilder()
+                                                                .name(Text.literal("Give compass"))
+                                                                .description(OptionDescription.of(
+                                                                        Text.literal("Whether and what kind of a compass to give the player upon respawning"),
+                                                                        Text.empty(),
+                                                                        Text.literal("None:").formatted(Formatting.BOLD),
+                                                                        Text.literal("No compass given."),
+                                                                        Text.empty(),
+                                                                        Text.literal("Normal compass:").formatted(Formatting.BOLD),
+                                                                        Text.literal("Normal compass given, pointing towards the world spawnpoint in the vanilla game."),
+                                                                        Text.empty(),
+                                                                        Text.literal("Recovery compass:").formatted(Formatting.BOLD),
+                                                                        Text.literal("Recovery compass given, pointing towards the death position of the player.")
+                                                                ))
+                                                                .binding(def.giveCompassType, () -> config.giveCompassType, val -> config.giveCompassType = val)
+                                                                .controller(opt -> new EnumControllerBuilderImpl<>(opt).enumClass(AdventurersRespawnsConfig.GivenCompassType.class))
                                                                 .build()
                                                 )
                                                 .build()

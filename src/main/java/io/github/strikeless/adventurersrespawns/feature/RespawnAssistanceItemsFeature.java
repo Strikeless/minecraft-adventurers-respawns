@@ -1,9 +1,11 @@
 package io.github.strikeless.adventurersrespawns.feature;
 
 import io.github.strikeless.adventurersrespawns.AdventurersRespawns;
+import io.github.strikeless.adventurersrespawns.AdventurersRespawnsConfig;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.FilledMapItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.item.map.MapDecorationType;
 import net.minecraft.item.map.MapDecorationTypes;
 import net.minecraft.item.map.MapState;
@@ -15,7 +17,7 @@ import net.minecraft.util.math.BlockPos;
 
 import java.util.Objects;
 
-public class RespawnMapsFeature {
+public class RespawnAssistanceItemsFeature {
     public static void giveDeathPositionMap(ServerPlayerEntity player) {
         final var config = AdventurersRespawns.getConfig();
         final var server = Objects.requireNonNull(player.getServer());
@@ -39,6 +41,17 @@ public class RespawnMapsFeature {
 
         final var spawnpointMapStack = createDecoratedMap(spawnpointWorld, spawnpointPos, MapDecorationTypes.TARGET_X, config.spawnpointMapName);
         player.giveItemStack(spawnpointMapStack);
+    }
+
+    public static void giveCompass(ServerPlayerEntity player, AdventurersRespawnsConfig.GivenCompassType compassType) {
+        final var compassItem = switch (compassType) {
+            case None -> throw new IllegalArgumentException("giveCompass called with NoCompassGiven type");
+            case NormalCompass -> Items.COMPASS;
+            case RecoveryCompass -> Items.RECOVERY_COMPASS;
+        };
+
+        final var compassStack = new ItemStack(compassItem);
+        player.giveItemStack(compassStack);
     }
 
     private static ItemStack createDecoratedMap(ServerWorld world, BlockPos markerPos, RegistryEntry<MapDecorationType> decorationType, String mapName) {
