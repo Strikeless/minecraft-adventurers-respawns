@@ -19,45 +19,45 @@ import java.util.Objects;
 
 public class RespawnAssistanceItemsFeature {
     public static void giveDeathPositionMap(ServerPlayerEntity player) {
-        final var config = AdventurersRespawns.getConfig();
-        final var server = Objects.requireNonNull(player.getServer());
+        var config = AdventurersRespawns.getConfig();
+        var server = Objects.requireNonNull(player.getServer());
 
-        final var deathGlobalPos = player.getLastDeathPos().orElseThrow();
-        final var deathWorld = server.getWorld(deathGlobalPos.dimension());
-        final var deathPos = deathGlobalPos.pos();
+        var deathGlobalPos = player.getLastDeathPos().orElseThrow();
+        var deathWorld = server.getWorld(deathGlobalPos.dimension());
+        var deathPos = deathGlobalPos.pos();
 
-        final var deathPositionMapStack = createDecoratedMap(deathWorld, deathPos, MapDecorationTypes.RED_X, config.deathPositionMapName);
+        var deathPositionMapStack = createDecoratedMap(deathWorld, deathPos, MapDecorationTypes.RED_X, config.deathPositionMapName);
         player.giveItemStack(deathPositionMapStack);
     }
 
     public static void giveSpawnpointMap(ServerPlayerEntity player) {
-        final var config = AdventurersRespawns.getConfig();
-        final var server = Objects.requireNonNull(player.getServer());
+        var config = AdventurersRespawns.getConfig();
+        var server = Objects.requireNonNull(player.getServer());
 
-        final var spawnpointPos = player.getSpawnPointPosition();
+        var spawnpointPos = player.getSpawnPointPosition();
         if (spawnpointPos == null) return;
 
-        final var spawnpointWorld = server.getWorld(player.getSpawnPointDimension());
+        var spawnpointWorld = server.getWorld(player.getSpawnPointDimension());
 
-        final var spawnpointMapStack = createDecoratedMap(spawnpointWorld, spawnpointPos, MapDecorationTypes.TARGET_X, config.spawnpointMapName);
+        var spawnpointMapStack = createDecoratedMap(spawnpointWorld, spawnpointPos, MapDecorationTypes.TARGET_X, config.spawnpointMapName);
         player.giveItemStack(spawnpointMapStack);
     }
 
     public static void giveCompass(ServerPlayerEntity player, AdventurersRespawnsConfig.GivenCompassType compassType) {
-        final var compassItem = switch (compassType) {
+        var compassItem = switch (compassType) {
             case None -> throw new IllegalArgumentException("giveCompass called with NoCompassGiven type");
             case NormalCompass -> Items.COMPASS;
             case RecoveryCompass -> Items.RECOVERY_COMPASS;
         };
 
-        final var compassStack = new ItemStack(compassItem);
+        var compassStack = new ItemStack(compassItem);
         player.giveItemStack(compassStack);
     }
 
     private static ItemStack createDecoratedMap(ServerWorld world, BlockPos markerPos, RegistryEntry<MapDecorationType> decorationType, String mapName) {
-        final var config = AdventurersRespawns.getConfig();
+        var config = AdventurersRespawns.getConfig();
 
-        final var mapItemStack = FilledMapItem.createMap(
+        var mapItemStack = FilledMapItem.createMap(
                 world,
                 markerPos.getX(),
                 markerPos.getZ(),

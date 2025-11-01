@@ -18,8 +18,8 @@ import java.util.Objects;
 public abstract class PlayerManagerMixin {
     @Inject(method = "respawnPlayer", at = @At("RETURN"))
     private void respawnPlayer(CallbackInfoReturnable<ServerPlayerEntity> info) {
-        final var config = AdventurersRespawns.getConfig();
-        final var respawnedPlayer = info.getReturnValue();
+        var config = AdventurersRespawns.getConfig();
+        var respawnedPlayer = info.getReturnValue();
 
         SpawnHealthAndFoodFeature.setSpawnHealthAndFood(respawnedPlayer);
 
