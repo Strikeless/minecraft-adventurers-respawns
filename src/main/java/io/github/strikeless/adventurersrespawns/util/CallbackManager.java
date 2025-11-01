@@ -8,14 +8,14 @@ public class CallbackManager<T> {
     private final List<Function<T, Boolean>> listeners = new ArrayList<>();
 
     public void dispatch(T value) {
-        listeners.removeIf(listener -> !listener.apply(value));
+        this.listeners.removeIf(listener -> !listener.apply(value));
     }
 
     public void registerListener(Function<T, Boolean> listener) {
-        listeners.add(listener);
+        this.listeners.add(listener);
     }
 
     public void unregisterListener(Function<T, Boolean> listener) {
-        listeners.remove(listener);
+        this.listeners.remove(listener);
     }
 }

@@ -31,7 +31,7 @@ public class AdventurersRespawnsConfig {
     public int respawnStructureFuzzyExtentChunks = 12;
 
     @SerialEntry
-    public int respawnStructureMaxSearchExtentChunks = 512;
+    public int respawnStructureSearchExtentChunks = 512;
 
     @SerialEntry
     public List<String> respawnStructureIdentifiers = new ArrayList<>(List.of(

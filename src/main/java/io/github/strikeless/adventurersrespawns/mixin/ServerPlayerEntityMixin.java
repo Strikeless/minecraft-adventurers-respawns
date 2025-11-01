@@ -34,10 +34,10 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity {
 
     @Inject(method = "getRespawnTarget", at = @At("RETURN"), cancellable = true)
     private void getRespawnTarget(CallbackInfoReturnable<TeleportTarget> info) {
-        final var config = AdventurersRespawns.getConfig();
+        var config = AdventurersRespawns.getConfig();
 
         if (config.respawnAtStructures) {
-            final var respawnPos = SpawnPositionFeature.getSpawnPosition((ServerPlayerEntity) (Object) this);
+            var respawnPos = SpawnPositionFeature.getSpawnPosition((ServerPlayerEntity) (Object) this);
 
             if (respawnPos.isPresent()) {
                 info.setReturnValue(new TeleportTarget(

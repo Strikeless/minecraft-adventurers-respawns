@@ -27,7 +27,7 @@ public abstract class ClientPlayerEntityMixin extends PlayerEntity {
 
     @Unique
     private static final Function<SpawnPositionFeature.SpawnChunkSearchStatus, Boolean> CHUNK_SEARCH_STATUS_TEXT_UPDATER = status -> {
-        final var deathScreenAccessor = getDeathScreenAccessor().orElse(null);
+        var deathScreenAccessor = getDeathScreenAccessor().orElse(null);
         if (deathScreenAccessor == null) return true; // Not in death screen anymore?
 
         final Text text;
@@ -53,10 +53,10 @@ public abstract class ClientPlayerEntityMixin extends PlayerEntity {
 
     @Inject(at = @At("HEAD"), method = "requestRespawn")
     private void requestRespawn(CallbackInfo info) {
-        final var deathScreenAccessor = getDeathScreenAccessor().orElse(null);
+        var deathScreenAccessor = getDeathScreenAccessor().orElse(null);
         if (deathScreenAccessor == null) return;
 
-        final var respawnButton = getRespawnButton(deathScreenAccessor);
+        var respawnButton = getRespawnButton(deathScreenAccessor);
         respawnButton.setMessage(Text.literal("Preparing to spawn..."));
 
         originalScoreText = deathScreenAccessor.getScoreText();
@@ -64,10 +64,10 @@ public abstract class ClientPlayerEntityMixin extends PlayerEntity {
 
     @Unique
     private static Optional<DeathScreenAccessor> getDeathScreenAccessor() {
-        final var mc = MinecraftClient.getInstance();
+        var mc = MinecraftClient.getInstance();
 
         if (mc.currentScreen instanceof DeathScreen deathScreen) {
-            final var deathScreenAccessor = (DeathScreenAccessor) deathScreen;
+            var deathScreenAccessor = (DeathScreenAccessor) deathScreen;
             return Optional.of(deathScreenAccessor);
         } else {
             return Optional.empty();

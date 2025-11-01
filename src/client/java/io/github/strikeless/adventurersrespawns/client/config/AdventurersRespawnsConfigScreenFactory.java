@@ -13,8 +13,8 @@ import net.minecraft.util.Formatting;
 
 public class AdventurersRespawnsConfigScreenFactory {
     public static Screen getConfigScreen(Screen parentScreen) {
-        final var def = AdventurersRespawnsConfig.HANDLER.defaults();
-        final var config = AdventurersRespawns.getConfig();
+        var def = AdventurersRespawnsConfig.HANDLER.defaults();
+        var config = AdventurersRespawns.getConfig();
 
         return YetAnotherConfigLib.createBuilder()
                 .title(Text.literal("Adventurer's Respawns Configuration"))
