@@ -28,10 +28,10 @@ public class AdventurersRespawnsConfig {
     public boolean respawnAtStructures = true;
 
     @SerialEntry
-    public int respawnStructureFuzzyExtentChunks = 12;
+    public int respawnStructureFuzzyRadiusChunks = 12;
 
     @SerialEntry
-    public int respawnStructureSearchExtentChunks = 512;
+    public int respawnStructureSearchRadiusChunks = 256;
 
     @SerialEntry
     public List<String> respawnStructureIdentifiers = new ArrayList<>(List.of(

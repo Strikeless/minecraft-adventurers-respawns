@@ -30,14 +30,11 @@ public abstract class ClientPlayerEntityMixin extends PlayerEntity {
         var deathScreenAccessor = getDeathScreenAccessor().orElse(null);
         if (deathScreenAccessor == null) return true; // Not in death screen anymore?
 
-        final Text text;
-        if (status.done()) {
-            text = originalScoreText;
-        } else {
-            text = Text.literal("Searching for spawn structure ")
-                    .append(Text.literal(status.currentSearchExtent().toString()).formatted(Formatting.YELLOW))
-                    .append(Text.literal(" chunks away..."));
-        }
+        Text text = status.done() ? originalScoreText : (
+                Text.literal("Searching for spawn structure within ")
+                        .append(Text.literal(status.currentSearchExtent().toString()).formatted(Formatting.YELLOW))
+                        .append(Text.literal(" chunks..."))
+        );
 
         deathScreenAccessor.setScoreText(text);
         return true;
