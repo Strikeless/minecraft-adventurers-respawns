@@ -60,7 +60,7 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                                                         "depending on your world generator."
                                                                         ).formatted(Formatting.RED)
                                                                 ))
-                                                                .binding(def.respawnStructureFuzzyExtentChunks, () -> config.respawnStructureFuzzyExtentChunks, val -> config.respawnStructureFuzzyExtentChunks = val)
+                                                                .binding(def.respawnStructureFuzzyRadiusChunks, () -> config.respawnStructureFuzzyRadiusChunks, val -> config.respawnStructureFuzzyRadiusChunks = val)
                                                                 .controller(opt -> new IntegerSliderControllerBuilderImpl(opt).range(0, 128).step(1))
                                                                 .build()
                                                 )

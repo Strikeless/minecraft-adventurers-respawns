@@ -5,6 +5,7 @@ import io.github.strikeless.adventurersrespawns.util.CallbackManager;
 import net.minecraft.block.BedBlock;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -98,7 +99,7 @@ public class SpawnPositionFeature {
         /*
          * First try searching in the fuzzy range, picking a random structure if many are found within the range.
          */
-        var fuzzyRangeStructureBounds = findAllStructures(player, structureKeys, config.respawnStructureFuzzyExtentChunks);
+        var fuzzyRangeStructureBounds = findAllStructures(player, structureKeys, config.respawnStructureFuzzyRadiusChunks);
 
         if (!fuzzyRangeStructureBounds.isEmpty()) {
             var randomIndex = RandomGenerator.getDefault().nextInt(0, fuzzyRangeStructureBounds.size());
@@ -110,10 +111,13 @@ public class SpawnPositionFeature {
          * No structures were found in the fuzzy range, search for any structure within the maximum search range.
          */
         AdventurersRespawns.getLogger().debug("No spawn structure found in fuzzy range, searching for closest...");
-        return findClosestStructure(player, structureKeys, config.respawnStructureFuzzyExtentChunks, config.respawnStructureSearchExtentChunks);
+        return findClosestStructure(player, structureKeys, config.respawnStructureSearchRadiusChunks);
     }
 
     private static List<BlockBox> findAllStructures(ServerPlayerEntity player, List<RegistryKey<Structure>> structureKeys, int searchExtentChunks) {
+        // This could probably be optimised to utilise StructurePlacementCalculator more directly
+        // instead of loading/generating whole chunks. Something similar to how findClosestStructure does it.
+
         var world = player.getServerWorld();
 
         var foundStructureBounds = new ArrayList<BlockBox>();
@@ -141,42 +145,51 @@ public class SpawnPositionFeature {
         return foundStructureBounds;
     }
 
-    private static Optional<BlockBox> findClosestStructure(ServerPlayerEntity player, List<RegistryKey<Structure>> structureKeys, int minSearchExtentChunks, int maxSearchExtentChunks) {
+    private static Optional<BlockBox> findClosestStructure(ServerPlayerEntity player, List<RegistryKey<Structure>> structureKeys, int searchExtentChunks) {
         var world = player.getServerWorld();
+        var server = Objects.requireNonNull(player.getServer());
 
-        var playerChunkX = ChunkSectionPos.getSectionCoord(player.getBlockX());
-        var playerChunkZ = ChunkSectionPos.getSectionCoord(player.getBlockZ());
+        var structureRegistry = server.getRegistryManager().getOrThrow(RegistryKeys.STRUCTURE);
+        var structureRegistryEntryList = RegistryEntryList.of(
+                structureKeys.stream()
+                        .map(structureKey -> structureRegistry.getEntry(structureKey.getValue()).orElseThrow())
+                        .toList()
+        );
 
-        var currentSearchExtent = minSearchExtentChunks;
-        while (currentSearchExtent < maxSearchExtentChunks) {
-            CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(currentSearchExtent, false));
+        CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(searchExtentChunks, false));
+        var blockPosStructureEntryPair = world.getChunkManager().getChunkGenerator().locateStructure(
+                world,
+                structureRegistryEntryList,
+                player.getBlockPos(),
+                searchExtentChunks,
+                false
+        );
+        CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(null, true));
 
-            for (var chunkOffsetX = -currentSearchExtent; chunkOffsetX <= currentSearchExtent; ++chunkOffsetX) {
-                for (var chunkOffsetZ = -currentSearchExtent; chunkOffsetZ <= currentSearchExtent; ++chunkOffsetZ) {
-                    // Ugly way to filter chunks that have been checked in previous extent iterations, no need to recheck those.
-                    if (Math.abs(chunkOffsetX) != currentSearchExtent && Math.abs(chunkOffsetZ) != currentSearchExtent) {
-                        continue;
-                    }
-
-                    var chunkX = playerChunkX + chunkOffsetX;
-                    var chunkZ = playerChunkZ + chunkOffsetZ;
-
-                    var chunk = world.getChunk(chunkX, chunkZ, ChunkStatus.STRUCTURE_STARTS);
-                    var chunkFoundStructureBounds = getChunkStructures(world, chunk, structureKeys);
-
-                    if (!chunkFoundStructureBounds.isEmpty()) {
-                        CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(null, true));
-
-                        var firstFoundStructureBounds = chunkFoundStructureBounds.getFirst();
-                        return Optional.of(firstFoundStructureBounds);
-                    }
-                }
-            }
-            currentSearchExtent += 1;
+        if (blockPosStructureEntryPair == null) {
+            // No structure was found.
+            return Optional.empty();
         }
 
-        CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(null, true));
-        return Optional.empty();
+        /*
+         * A structure was found. Since the ChunkGenerator.locateStructure method only gives us the
+         * starting location of the structure, we still need to find the bounds of the structure ourselves.
+         */
+        var structureBlockPos = blockPosStructureEntryPair.getFirst();
+
+        var structureStartChunk = world.getChunk(structureBlockPos);
+        // NOTE: Since we're passing all the searchable structure keys here, there might be an edge-case where
+        //       we will find bounds of another respawn-fit structure than the one which was located, if many such structures start at the same chunk.
+        //       This doesn't really matter at all but is still something to keep in mind. Could be fixed by only passing the key of the found structure.
+        var chunkStructureBounds = getChunkStructures(world, structureStartChunk, structureKeys);
+
+        if (chunkStructureBounds.isEmpty()) {
+            AdventurersRespawns.getLogger().error("A structure was located at {}, but structure bounds weren't resolved?", structureBlockPos);
+            AdventurersRespawns.getLogger().error("This is most likely a bug in Adventurers Respawns!");
+            return Optional.empty();
+        }
+
+        return chunkStructureBounds.stream().findAny();
     }
 
     private static List<BlockBox> getChunkStructures(ServerWorld world, Chunk chunk, List<RegistryKey<Structure>> structureKeys) {
