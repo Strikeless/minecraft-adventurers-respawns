@@ -1,4 +1,4 @@
-package io.github.strikeless.adventurersrespawns.util;
+package io.github.strikeless.adventurersrespawns.main.util;
 
 import java.util.ArrayList;
 import java.util.List;

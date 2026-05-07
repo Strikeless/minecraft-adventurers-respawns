@@ -1,8 +1,8 @@
 package io.github.strikeless.adventurersrespawns.client.mixin;
 
-import net.minecraft.client.gui.screen.DeathScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.DeathScreen;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -11,11 +11,11 @@ import java.util.List;
 @Mixin(DeathScreen.class)
 public interface DeathScreenAccessor {
     @Accessor
-    List<ButtonWidget> getButtons();
+    List<Button> getExitButtons();
 
     @Accessor
-    Text getScoreText();
+    Component getDeathScore();
 
     @Accessor
-    void setScoreText(Text scoreText);
+    void setDeathScore(Component scoreText);
 }

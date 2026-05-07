@@ -1,31 +1,31 @@
-package io.github.strikeless.adventurersrespawns.mixin;
+package io.github.strikeless.adventurersrespawns.main.mixin;
 
-import io.github.strikeless.adventurersrespawns.AdventurersRespawns;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.World;
+import io.github.strikeless.adventurersrespawns.main.AdventurersRespawns;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(PlayerEntity.class)
-public abstract class PlayerEntityMixin extends LivingEntity {
+@Mixin(Player.class)
+public abstract class PlayerMixin extends LivingEntity {
     @Shadow
     public abstract boolean isSpectator();
 
     @Shadow
     public int experienceLevel;
 
-    protected PlayerEntityMixin(EntityType<? extends LivingEntity> entityType, World world) {
-        super(entityType, world);
+    protected PlayerMixin(EntityType<? extends LivingEntity> entityType, Level level) {
+        super(entityType, level);
     }
 
-    @Inject(method = "getExperienceToDrop", at = @At("HEAD"), cancellable = true)
-    private void getExperienceToDrop(ServerWorld world, CallbackInfoReturnable<Integer> info) {
+    @Inject(method = "getBaseExperienceReward", at = @At("HEAD"), cancellable = true)
+    private void getBaseExperienceReward(ServerLevel serverLevel, CallbackInfoReturnable<Integer> info) {
         var config = AdventurersRespawns.getConfig();
 
         switch (config.deathExperienceBehavior) {
@@ -42,8 +42,8 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         }
     }
 
-    @Inject(method = "shouldAlwaysDropExperience", at = @At("HEAD"), cancellable = true)
-    private void shouldAlwaysDropExperience(CallbackInfoReturnable<Boolean> info) {
+    @Inject(method = "isAlwaysExperienceDropper", at = @At("HEAD"), cancellable = true)
+    private void isAlwaysExperienceDropper(CallbackInfoReturnable<Boolean> info) {
         var config = AdventurersRespawns.getConfig();
 
         switch (config.deathExperienceBehavior) {
@@ -53,5 +53,5 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         }
     }
 
-    // Mixin ServerPlayerEntity.copyFrom also related to the deathExperienceBehavior feature, found in ServerPlayerEntityMixin.
+    // Mixin ServerPlayer.restoreFrom also related to the deathExperienceBehavior feature, found in ServerPlayerMixin.
 }

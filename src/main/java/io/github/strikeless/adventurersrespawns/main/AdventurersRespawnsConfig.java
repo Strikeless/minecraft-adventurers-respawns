@@ -1,4 +1,4 @@
-package io.github.strikeless.adventurersrespawns;
+package io.github.strikeless.adventurersrespawns.main;
 
 import com.google.gson.GsonBuilder;
 import dev.isxander.yacl3.api.NameableEnum;
@@ -6,15 +6,15 @@ import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AdventurersRespawnsConfig {
     public static ConfigClassHandler<AdventurersRespawnsConfig> HANDLER = ConfigClassHandler.createBuilder(AdventurersRespawnsConfig.class)
-            .id(Identifier.of("adventurers-respawns", "config"))
+            .id(ResourceLocation.fromNamespaceAndPath("adventurers-respawns", "config"))
             .serializer(config -> {
                 return GsonConfigSerializerBuilder.create(config)
                         .setPath(FabricLoader.getInstance().getConfigDir().resolve("adventurers_respawns.json5"))
@@ -92,12 +92,12 @@ public class AdventurersRespawnsConfig {
         Destroy;
 
         @Override
-        public Text getDisplayName() {
+        public Component getDisplayName() {
             return switch (this) {
-                case Vanilla -> Text.literal("Vanilla");
-                case Keep -> Text.literal("Keep");
-                case Drop -> Text.literal("Drop");
-                case Destroy -> Text.literal("Destroy");
+                case Vanilla -> Component.literal("Vanilla");
+                case Keep -> Component.literal("Keep");
+                case Drop -> Component.literal("Drop");
+                case Destroy -> Component.literal("Destroy");
             };
         }
     }
@@ -111,11 +111,11 @@ public class AdventurersRespawnsConfig {
         RecoveryCompass;
 
         @Override
-        public Text getDisplayName() {
+        public Component getDisplayName() {
             return switch (this) {
-                case None -> Text.literal("None");
-                case NormalCompass -> Text.literal("Normal compass");
-                case RecoveryCompass -> Text.literal("Recovery compass");
+                case None -> Component.literal("None");
+                case NormalCompass -> Component.literal("Normal compass");
+                case RecoveryCompass -> Component.literal("Recovery compass");
             };
         }
     }

@@ -1,12 +1,12 @@
-package io.github.strikeless.adventurersrespawns.mixin;
+package io.github.strikeless.adventurersrespawns.main.mixin;
 
-import io.github.strikeless.adventurersrespawns.AdventurersRespawns;
-import io.github.strikeless.adventurersrespawns.AdventurersRespawnsConfig;
-import io.github.strikeless.adventurersrespawns.feature.RespawnAssistanceItemsFeature;
-import io.github.strikeless.adventurersrespawns.feature.RespawnTimeSkipFeature;
-import io.github.strikeless.adventurersrespawns.feature.SpawnHealthAndFoodFeature;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayerEntity;
+import io.github.strikeless.adventurersrespawns.main.AdventurersRespawns;
+import io.github.strikeless.adventurersrespawns.main.AdventurersRespawnsConfig;
+import io.github.strikeless.adventurersrespawns.main.feature.RespawnAssistanceItemsFeature;
+import io.github.strikeless.adventurersrespawns.main.feature.RespawnTimeSkipFeature;
+import io.github.strikeless.adventurersrespawns.main.feature.SpawnHealthAndFoodFeature;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -14,10 +14,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Objects;
 
-@Mixin(PlayerManager.class)
+@Mixin(PlayerList.class)
 public abstract class PlayerManagerMixin {
-    @Inject(method = "respawnPlayer", at = @At("RETURN"))
-    private void respawnPlayer(CallbackInfoReturnable<ServerPlayerEntity> info) {
+    @Inject(method = "respawn", at = @At("RETURN"))
+    private void respawn(CallbackInfoReturnable<ServerPlayer> info) {
         var config = AdventurersRespawns.getConfig();
         var respawnedPlayer = info.getReturnValue();
 
