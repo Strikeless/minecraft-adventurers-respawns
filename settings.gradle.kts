@@ -20,11 +20,11 @@ plugins {
 stonecutter {
     create(rootProject) {
         // Here we specify the target game versions that Stonecutter will try to build the mod for.
-        versions("1.21.4")
+        versions("26.1.2")
 
-        // Specify an explicit target version for Stonecutter to reset to when running the "Reset active version" gradle task.
+        // Specify an explicit target version for Stonecutter to reset to when running the "Reset active version" Gradle task.
         // The task should be run before committing changes, so that there's no diffs from Stonecutter's preprocessor internals.
-        vcsVersion = "1.21.4"
+        vcsVersion = "26.1.2"
     }
 }
 

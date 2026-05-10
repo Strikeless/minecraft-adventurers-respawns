@@ -10,6 +10,6 @@ public class SpawnHealthAndFoodFeature {
 
         player.setHealth(config.respawnHealth);
         playerFoodData.setFoodLevel(config.respawnFoodLevel);
-        playerFoodData.setSaturation(config.respawnSaturationLevel);
+        playerFoodData.setSaturation(config.respawnSaturation);
     }
 }

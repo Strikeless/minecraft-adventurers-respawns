@@ -7,14 +7,14 @@ import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AdventurersRespawnsConfig {
     public static ConfigClassHandler<AdventurersRespawnsConfig> HANDLER = ConfigClassHandler.createBuilder(AdventurersRespawnsConfig.class)
-            .id(ResourceLocation.fromNamespaceAndPath("adventurers-respawns", "config"))
+            .id(Identifier.fromNamespaceAndPath("adventurers-respawns", "config"))
             .serializer(config -> {
                 return GsonConfigSerializerBuilder.create(config)
                         .setPath(FabricLoader.getInstance().getConfigDir().resolve("adventurers_respawns.json5"))
@@ -52,7 +52,7 @@ public class AdventurersRespawnsConfig {
     public int respawnFoodLevel = 10;
 
     @SerialEntry
-    public float respawnSaturationLevel = 0.0F;
+    public float respawnSaturation = 0.0F;
 
     @SerialEntry
     public byte mapScale = 3;
@@ -73,10 +73,10 @@ public class AdventurersRespawnsConfig {
     public boolean timeSkipOnRespawn = false;
 
     @SerialEntry
-    public long timeSkipMinTime = 8000;
+    public int timeSkipMinTimeTicks = 8000;
 
     @SerialEntry
-    public long timeSkipMaxTime = 24000;
+    public int timeSkipMaxTimeTicks = 24000;
 
     public enum DeathExperienceBehavior implements NameableEnum {
         /// Don't alter behavior

@@ -4,6 +4,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.DeathScreen;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.List;
@@ -17,5 +18,6 @@ public interface DeathScreenAccessor {
     Component getDeathScore();
 
     @Accessor
+    @Mutable
     void setDeathScore(Component scoreText);
 }

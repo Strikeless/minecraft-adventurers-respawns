@@ -25,7 +25,7 @@ public abstract class PlayerMixin extends LivingEntity {
     }
 
     @Inject(method = "getBaseExperienceReward", at = @At("HEAD"), cancellable = true)
-    private void getBaseExperienceReward(ServerLevel serverLevel, CallbackInfoReturnable<Integer> info) {
+    private void getBaseExperienceReward(ServerLevel level, CallbackInfoReturnable<Integer> info) {
         var config = AdventurersRespawns.getConfig();
 
         switch (config.deathExperienceBehavior) {

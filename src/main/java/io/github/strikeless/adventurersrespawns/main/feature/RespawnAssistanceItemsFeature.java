@@ -2,6 +2,7 @@ package io.github.strikeless.adventurersrespawns.main.feature;
 
 import io.github.strikeless.adventurersrespawns.main.AdventurersRespawns;
 import io.github.strikeless.adventurersrespawns.main.AdventurersRespawnsConfig;
+import io.github.strikeless.adventurersrespawns.main.util.PlayerUtil;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.item.ItemStack;
@@ -15,12 +16,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.BlockPos;
 
-import java.util.Objects;
-
 public class RespawnAssistanceItemsFeature {
     public static void giveDeathPositionMap(ServerPlayer player) {
         var config = AdventurersRespawns.getConfig();
-        var server = Objects.requireNonNull(player.getServer());
+        var server = PlayerUtil.getServer(player);
 
         var deathGlobalPos = player.getLastDeathLocation().orElseThrow();
         var deathLevel = server.getLevel(deathGlobalPos.dimension());
@@ -32,14 +31,18 @@ public class RespawnAssistanceItemsFeature {
 
     public static void giveSpawnpointMap(ServerPlayer player) {
         var config = AdventurersRespawns.getConfig();
-        var server = Objects.requireNonNull(player.getServer());
+        var server = PlayerUtil.getServer(player);
 
-        var spawnpointPos = player.getRespawnPosition();
-        if (spawnpointPos == null) return;
+        var playerRespawnConfig = player.getRespawnConfig();
+        if (playerRespawnConfig == null) {
+            // The player has no respawn config, meaning they don't have a spawnpoint set. No map to give if there's nowhere for it to lead to.
+            return;
+        }
 
-        var spawnpointLevel = server.getLevel(player.getRespawnDimension());
+        var playerRespawnLevel = server.getLevel(playerRespawnConfig.respawnData().dimension());
+        var playerRespawnPos = playerRespawnConfig.respawnData().pos();
 
-        var spawnpointMapStack = createDecoratedMap(spawnpointLevel, spawnpointPos, MapDecorationTypes.TARGET_X, config.spawnpointMapName);
+        var spawnpointMapStack = createDecoratedMap(playerRespawnLevel, playerRespawnPos, MapDecorationTypes.TARGET_X, config.spawnpointMapName);
         player.addItem(spawnpointMapStack);
     }
 

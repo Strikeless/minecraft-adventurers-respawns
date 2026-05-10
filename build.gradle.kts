@@ -5,7 +5,7 @@
  */
 
 plugins {
-    id("net.fabricmc.fabric-loom-remap") version "1.16.1"
+    id("net.fabricmc.fabric-loom") version "1.16.1"
 
     // `maven-publish`
     // id("me.modmuss50.mod-publish-plugin")
@@ -15,10 +15,15 @@ version = "${property("mod.version")}+${sc.current.version}"
 base.archivesName = property("mod.id") as String
 
 val requiredJava = when {
+    /*
+    Game versions before 26.1 are not supported on this branch. The 1.21.x branch serves as a hard-fork for supporting older versions.
+    sc.current.parsed >= "26.1" -> JavaVersion.VERSION_25
     sc.current.parsed >= "1.20.5" -> JavaVersion.VERSION_21
     sc.current.parsed >= "1.18" -> JavaVersion.VERSION_17
     sc.current.parsed >= "1.17" -> JavaVersion.VERSION_16
     else -> JavaVersion.VERSION_1_8
+    */
+    else -> JavaVersion.VERSION_25
 }
 
 repositories {
@@ -41,16 +46,16 @@ repositories {
 }
 
 dependencies {
+    // Base game and fabric loader.
     minecraft("com.mojang:minecraft:${sc.current.version}")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
+    implementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric_api")}")
+    // Fabric API. This is technically optional, but you probably want it anyway.
+    implementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric_api")}")
 
     // Dependencies to other mods.
-    modImplementation("dev.isxander:yet-another-config-lib:${property("deps.yacl")}")
-    modImplementation("com.terraformersmc:modmenu:${property("deps.modmenu")}")
+    implementation("dev.isxander:yet-another-config-lib:${property("deps.yacl")}")
+    implementation("com.terraformersmc:modmenu:${property("deps.modmenu")}")
 }
 
 loom {
@@ -60,6 +65,9 @@ loom {
     decompilerOptions.named("vineflower") {
         options.put("mark-corresponding-synthetics", "1") // Adds names to lambdas - useful for mixins
     }
+
+    // Enable additional logging (debug level) in development environments
+    log4jConfigs.from("log4j-dev.xml")
 
     runConfigs.all {
         ideConfigGenerated(true)
@@ -97,7 +105,7 @@ tasks {
     // Builds the version into a shared folder in `build/libs/${mod version}/`
     register<Copy>("buildAndCollect") {
         group = "build"
-        from(remapJar.map { it.archiveFile }, remapSourcesJar.map { it.archiveFile })
+        from(jar.map { it.archiveFile } /*, remapSourcesJar.map { it.archiveFile }   Not sure how to port this to 26.1, TODO: figure it out and uncomment */)
         into(rootProject.layout.buildDirectory.file("libs/${project.property("mod.version")}"))
         dependsOn("build")
     }
@@ -106,7 +114,7 @@ tasks {
 /*
 // Publishes builds to Modrinth and Curseforge with changelog from the CHANGELOG.md file
 publishMods {
-    file = tasks.remapJar.map { it.archiveFile.get() }
+    file = tasks.jar.map { it.archiveFile.get() }
     additionalFiles.from(tasks.remapSourcesJar.map { it.archiveFile.get() })
     displayName = "${property("mod.name")} ${property("mod.version")} for ${property("mod.mc_title")}"
     version = property("mod.version") as String

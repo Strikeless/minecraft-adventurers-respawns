@@ -7,7 +7,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import 	net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -27,7 +27,7 @@ public class SpawnPositionFeature {
     ) {}
 
     public static Optional<BlockPos> getSpawnPosition(ServerPlayer player) {
-        var level = player.serverLevel();
+        var level = player.level();
 
         var spawnStructureTypes = getSpawnStructureKeys(level);
 
@@ -46,7 +46,7 @@ public class SpawnPositionFeature {
         var spawnStructureTypes = new ArrayList<Structure>();
 
         for (var structureIdentifierString : config.respawnStructureIdentifiers) {
-            var structureIdentifier = ResourceLocation.read(structureIdentifierString).result().orElse(null);
+            var structureIdentifier = Identifier.read(structureIdentifierString).result().orElse(null);
             if (structureIdentifier == null) {
                 AdventurersRespawns.getLogger().error("Invalid structure identifier '{}'.", structureIdentifierString);
                 continue;
@@ -67,11 +67,10 @@ public class SpawnPositionFeature {
 
                         return setStructureEntry.unwrap()
                                 .map(
-                                        structureRegistry::getValue,
+                                        structureRegistry::getValueOrThrow,
                                         setStructure -> setStructure
                                 );
                     })
-                    .filter(Objects::nonNull) // Null filtering for structures in the set not registered in the current world.
                     .toList();
 
                 AdventurersRespawns.getLogger().debug("Found {} structure types in set '{}'.", setStructures.size(), structureIdentifierString);
@@ -115,7 +114,7 @@ public class SpawnPositionFeature {
         // This could probably be optimised to utilise StructurePlacementCalculator more directly
         // instead of loading/generating whole chunks. Something similar to how findClosestStructure does it.
 
-        var level = player.serverLevel();
+        var level = player.level();
 
         var foundStructureBounds = new ArrayList<BoundingBox>();
 
@@ -143,13 +142,13 @@ public class SpawnPositionFeature {
     }
 
     private static Optional<BoundingBox> findClosestStructureWithinExtent(ServerPlayer player, List<ResourceKey<Structure>> structureKeys, int searchExtentChunks) {
-        var level = player.serverLevel();
-        var server = Objects.requireNonNull(player.getServer());
+        var level = player.level();
+        var server = level.getServer();
 
         var structureRegistry = server.registryAccess().lookupOrThrow(Registries.STRUCTURE);
         var structureRegistryEntryList = HolderSet.direct(
                 structureKeys.stream()
-                        .map(structureKey -> structureRegistry.get(structureKey.location()).orElseThrow())
+                        .map(structureKey -> structureRegistry.get(structureKey.identifier()).orElseThrow())
                         .toList()
         );
 

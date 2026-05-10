@@ -3,12 +3,12 @@ package io.github.strikeless.adventurersrespawns.main.mixin;
 import com.mojang.authlib.GameProfile;
 import io.github.strikeless.adventurersrespawns.main.AdventurersRespawns;
 import io.github.strikeless.adventurersrespawns.main.feature.SpawnPositionFeature;
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.NonNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,13 +22,10 @@ import java.util.random.RandomGenerator;
 @Mixin(ServerPlayer.class)
 public abstract class ServerPlayerMixin extends Player {
     @Shadow
-    public abstract ServerLevel serverLevel();
+    public abstract @NonNull ServerLevel level();
 
-    @Shadow
-    public abstract boolean isSpectator();
-
-    public ServerPlayerMixin(ServerLevel level, BlockPos pos, float yaw, GameProfile gameProfile) {
-        super(level, pos, yaw, gameProfile);
+    public ServerPlayerMixin(ServerLevel level, GameProfile gameProfile) {
+        super(level, gameProfile);
     }
 
     @Inject(method = "findRespawnPositionAndUseSpawnBlock", at = @At("RETURN"), cancellable = true)
@@ -40,15 +37,15 @@ public abstract class ServerPlayerMixin extends Player {
 
             if (respawnPos.isPresent()) {
                 info.setReturnValue(new TeleportTransition(
-                        this.serverLevel(),
-                        respawnPos.get().getBottomCenter(),
-                        Vec3.ZERO, // Velocity
-                        RandomGenerator.getDefault().nextFloat(0.0F, 360.0F), // Yaw
-                        0.0F, // Pitch
-                        false, // Missing respawn
-                        false, // As passenger
-                        Set.of(), // Relatives
-                        TeleportTransition.DO_NOTHING // Post teleport transition
+                    this.level(),
+                    respawnPos.get().getBottomCenter(),
+                    Vec3.ZERO, // Velocity
+                    RandomGenerator.getDefault().nextFloat(0.0F, 360.0F), // Yaw
+                    0.0F, // Pitch
+                    false, // Missing respawn
+                    false, // As passenger
+                    Set.of(), // Relatives
+                    TeleportTransition.DO_NOTHING // Post teleport transition
                 ));
             } else {
                 AdventurersRespawns.getLogger().warn("No structure found for respawning. Falling back to vanilla behavior.");
@@ -57,17 +54,17 @@ public abstract class ServerPlayerMixin extends Player {
     }
 
     @Inject(method = "restoreFrom", at = @At("RETURN"))
-    private void restoreFrom(ServerPlayer serverPlayer, boolean isAlive, CallbackInfo info) {
+    private void restoreFrom(ServerPlayer oldPlayer, boolean restoreAll, CallbackInfo info) {
         // PlayerEntity.getExperienceToDrop and PlayerEntity.shouldAlwaysDropExperience also related to this feature, found in PlayerEntityMixin.
-        if (!isAlive && !this.isSpectator()) {
+        if (!restoreAll && !this.isSpectator()) {
             var config = AdventurersRespawns.getConfig();
 
             switch (config.deathExperienceBehavior) {
                 case Vanilla -> {}
                 case Keep -> {
-                    this.experienceLevel = serverPlayer.experienceLevel;
-                    this.totalExperience = serverPlayer.totalExperience;
-                    this.experienceProgress = serverPlayer.experienceProgress;
+                    this.experienceLevel = oldPlayer.experienceLevel;
+                    this.totalExperience = oldPlayer.totalExperience;
+                    this.experienceProgress = oldPlayer.experienceProgress;
                 }
                 case Drop, Destroy -> {
                     this.experienceLevel = 0;
