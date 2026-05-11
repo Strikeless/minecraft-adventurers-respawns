@@ -2,7 +2,6 @@ package io.github.strikeless.adventurersrespawns.main.feature;
 
 import io.github.strikeless.adventurersrespawns.main.AdventurersRespawns;
 import io.github.strikeless.adventurersrespawns.main.AdventurersRespawnsConfig;
-import io.github.strikeless.adventurersrespawns.main.util.PlayerUtil;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.item.ItemStack;
@@ -19,7 +18,7 @@ import net.minecraft.core.BlockPos;
 public class RespawnAssistanceItemsFeature {
     public static void giveDeathPositionMap(ServerPlayer player) {
         var config = AdventurersRespawns.getConfig();
-        var server = PlayerUtil.getServer(player);
+        var server = player.level().getServer();
 
         var deathGlobalPos = player.getLastDeathLocation().orElseThrow();
         var deathLevel = server.getLevel(deathGlobalPos.dimension());
@@ -31,7 +30,7 @@ public class RespawnAssistanceItemsFeature {
 
     public static void giveSpawnpointMap(ServerPlayer player) {
         var config = AdventurersRespawns.getConfig();
-        var server = PlayerUtil.getServer(player);
+        var server = player.level().getServer();
 
         var playerRespawnConfig = player.getRespawnConfig();
         if (playerRespawnConfig == null) {

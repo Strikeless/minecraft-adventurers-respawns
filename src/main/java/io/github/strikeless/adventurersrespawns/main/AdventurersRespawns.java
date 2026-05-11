@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AdventurersRespawns implements ModInitializer {
-    private static final Logger LOGGER = LoggerFactory.getLogger("Adventurers Respawns");
+    private static final Logger LOGGER = LoggerFactory.getLogger("adventurers-respawns");
 
     public static AdventurersRespawnsConfig getConfig() {
         return AdventurersRespawnsConfig.HANDLER.instance();
