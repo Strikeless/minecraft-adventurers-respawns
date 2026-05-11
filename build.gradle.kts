@@ -8,7 +8,7 @@ plugins {
     id("net.fabricmc.fabric-loom-remap") version "1.16.1"
 
     // `maven-publish`
-    // id("me.modmuss50.mod-publish-plugin")
+    id("me.modmuss50.mod-publish-plugin") version "2.0.0-beta.1"
 }
 
 version = "${property("mod.version")}+${sc.current.version}"
@@ -103,7 +103,6 @@ tasks {
     }
 }
 
-/*
 // Publishes builds to Modrinth and Curseforge with changelog from the CHANGELOG.md file
 publishMods {
     file = tasks.remapJar.map { it.archiveFile.get() }
@@ -115,7 +114,7 @@ publishMods {
     modLoaders.add("fabric")
 
     dryRun = providers.environmentVariable("MODRINTH_TOKEN").getOrNull() == null
-        || providers.environmentVariable("CURSEFORGE_TOKEN").getOrNull() == null
+    //    || providers.environmentVariable("CURSEFORGE_TOKEN").getOrNull() == null
 
     modrinth {
         projectId = property("publish.modrinth") as String
@@ -124,8 +123,19 @@ publishMods {
         requires {
             slug = "fabric-api"
         }
+        requires {
+            // YetAnotherConfigLib, https://modrinth.com/mod/yacl
+            id = "1eAoo2KR"
+        }
     }
 
+    github {
+        repository = "Strikeless/minecraft-adventurers-respawns"
+        accessToken = providers.environmentVariable("GITHUB_TOKEN")
+        commitish = "master"
+    }
+
+    /*
     curseforge {
         projectId = property("publish.curseforge") as String
         accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
@@ -134,8 +144,8 @@ publishMods {
             slug = "fabric-api"
         }
     }
+    */
 }
-*/
 
 /*
 // Publishes builds to a maven repository under `com.example:template:0.1.0+mc`
