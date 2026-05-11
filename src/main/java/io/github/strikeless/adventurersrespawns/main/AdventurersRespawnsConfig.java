@@ -46,10 +46,10 @@ public class AdventurersRespawnsConfig {
     public boolean respawnStructureIgnoreVerticalBoundsFix = false;
 
     @SerialEntry
-    public int respawnHealth = 10;
+    public int respawnHealth = 20;
 
     @SerialEntry
-    public int respawnFoodLevel = 10;
+    public int respawnFoodLevel = 20;
 
     @SerialEntry
     public float respawnSaturation = 0.0F;
@@ -58,7 +58,7 @@ public class AdventurersRespawnsConfig {
     public byte mapScale = 3;
 
     @SerialEntry
-    public boolean giveDeathPositionMap = true;
+    public boolean giveDeathPositionMap = false;
 
     @SerialEntry
     public String deathPositionMapName = "Death position";
