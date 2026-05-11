@@ -147,7 +147,7 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                         Option.<Boolean>createBuilder()
                                                                 .name(Component.literal("Give death position map"))
                                                                 .description(OptionDescription.of(
-                                                                        Component.literal("Whether to give the player a map with a marker to their death position upon respawning")
+                                                                        Component.literal("Whether to give the player a map with a marker to their death position upon respawning.")
                                                                 ))
                                                                 .binding(def.giveDeathPositionMap, () -> config.giveDeathPositionMap, val -> config.giveDeathPositionMap = val)
                                                                 .controller(TickBoxControllerBuilderImpl::new)
@@ -157,7 +157,9 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                         Option.<Boolean>createBuilder()
                                                                 .name(Component.literal("Give spawnpoint map"))
                                                                 .description(OptionDescription.of(
-                                                                        Component.literal("Whether to give the player a map with a marker to their spawnpoint upon respawning")
+                                                                        Component.literal("Whether to give the player a map with a marker to their spawnpoint upon respawning."),
+                                                                        Component.empty(),
+                                                                        Component.literal("Note that spawnpoint refers to your vanilla spawnpoint, and not the position you spawn at with structure respawns enabled.")
                                                                 ))
                                                                 .binding(def.giveSpawnpointMap, () -> config.giveSpawnpointMap, val -> config.giveSpawnpointMap = val)
                                                                 .controller(TickBoxControllerBuilderImpl::new)
@@ -199,9 +201,11 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                 )
                                                 .option(
                                                         Option.<Long>createBuilder()
-                                                                .name(Component.literal("Minimum time skip"))
+                                                                .name(Component.literal("Minimum time skip (ticks)"))
                                                                 .description(OptionDescription.of(
-                                                                        Component.literal("Minimum time to skip upon respawning.")
+                                                                        Component.literal("Minimum time in ticks to skip upon respawning."),
+                                                                        Component.empty(),
+                                                                        Component.literal("One full in-game day is 24000 ticks.")
                                                                 ))
                                                                 .binding(def.timeSkipMinTime, () -> config.timeSkipMinTime, val -> config.timeSkipMinTime = val)
                                                                 .controller(opt -> new LongSliderControllerBuilderImpl(opt).range(0L, 24000L).step(100L))
@@ -209,9 +213,11 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                 )
                                                 .option(
                                                         Option.<Long>createBuilder()
-                                                                .name(Component.literal("Maximum time skip"))
+                                                                .name(Component.literal("Maximum time skip (ticks)"))
                                                                 .description(OptionDescription.of(
-                                                                        Component.literal("Maximum time to skip upon respawning.")
+                                                                        Component.literal("Maximum time in ticks to skip upon respawning."),
+                                                                        Component.empty(),
+                                                                        Component.literal("One full in-game day is 24000 ticks.")
                                                                 ))
                                                                 .binding(def.timeSkipMaxTime, () -> config.timeSkipMaxTime, val -> config.timeSkipMaxTime = val)
                                                                 .controller(opt -> new LongSliderControllerBuilderImpl(opt).range(0L, 24000L).step(100L))
