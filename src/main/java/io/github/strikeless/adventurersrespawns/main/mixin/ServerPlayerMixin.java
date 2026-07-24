@@ -38,7 +38,7 @@ public abstract class ServerPlayerMixin extends Player {
             if (respawnPos.isPresent()) {
                 info.setReturnValue(new TeleportTransition(
                     this.level(),
-                    respawnPos.get().getBottomCenter(),
+                    Vec3.atBottomCenterOf(respawnPos.get()),
                     Vec3.ZERO, // Velocity
                     RandomGenerator.getDefault().nextFloat(0.0F, 360.0F), // Yaw
                     0.0F, // Pitch

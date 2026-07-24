@@ -42,7 +42,7 @@ repositories {
     // YACL
     maven("https://maven.isxander.dev/releases") { name = "Xander Maven" }
     // ModMenu
-    maven("https://maven.terraformersmc.com/") { name = "Terraformers" }
+    maven("https://maven.terraformersmc.com/repository/maven-terraformers/") { name = "Terraformers" }
 }
 
 dependencies {
