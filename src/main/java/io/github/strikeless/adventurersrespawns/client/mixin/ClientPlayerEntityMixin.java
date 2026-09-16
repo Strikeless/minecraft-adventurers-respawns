@@ -22,20 +22,28 @@ import java.util.function.Function;
 @Mixin(LocalPlayer.class)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
     @Unique
-    private static Component originalScoreText = null;
+    private static Component originalScoreComponent = null;
 
     @Unique
     private static final Function<SpawnPositionFeature.SpawnChunkSearchStatus, Boolean> CHUNK_SEARCH_STATUS_TEXT_UPDATER = status -> {
         var deathScreenAccessor = getDeathScreenAccessor().orElse(null);
-        if (deathScreenAccessor == null) return true; // Not in death screen anymore?
+        if (deathScreenAccessor == null) return true; // Not in death screen anymore? Might as well remove the listener.
 
-        var text = status.done() ? originalScoreText : (
-                Component.literal("Searching for spawn structure within ")
-                        .append(Component.literal(status.currentSearchExtent().toString()).withStyle(ChatFormatting.YELLOW))
-                        .append(Component.literal(" chunks..."))
-        );
+        Component scoreComponent;
+        if (status.done()) {
+            // Done searching for spawn chunks, restore original score text/component.
+            scoreComponent = originalScoreComponent;
+        } else if (status.searchedChunkCount() != null) {
+            // Searching potential spawn chunks one-by-one.
+            var searchCompletionPercentage = ((float) status.searchedChunkCount()) / ((float) status.totalSearchChunkCount()) * 100.0;
+            scoreComponent = Component.literal("Searching for a spawn structure within " + status.searchExtentChunks() + " chunks: ")
+                    .append(Component.literal(String.format("%.0f", searchCompletionPercentage) + "%").withStyle(ChatFormatting.YELLOW));
+        } else {
+            // Searching for any spawn chunk in the radius.
+            scoreComponent = Component.literal("Searching for a spawn structure within " + status.searchExtentChunks() + " chunks...");
+        }
 
-        deathScreenAccessor.setDeathScore(text);
+        deathScreenAccessor.setDeathScore(scoreComponent);
         return true;
     };
 
@@ -55,7 +63,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
         var respawnButton = getRespawnButton(deathScreenAccessor);
         respawnButton.setMessage(Component.literal("Preparing to spawn..."));
 
-        originalScoreText = deathScreenAccessor.getDeathScore();
+        originalScoreComponent = deathScreenAccessor.getDeathScore();
     }
 
     @Unique

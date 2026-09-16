@@ -8,9 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
-import org.jspecify.annotations.NonNull;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -21,24 +19,27 @@ import java.util.random.RandomGenerator;
 
 @Mixin(ServerPlayer.class)
 public abstract class ServerPlayerMixin extends Player {
-    @Shadow
-    public abstract @NonNull ServerLevel level();
-
     public ServerPlayerMixin(ServerLevel level, GameProfile gameProfile) {
         super(level, gameProfile);
     }
 
     @Inject(method = "findRespawnPositionAndUseSpawnBlock", at = @At("RETURN"), cancellable = true)
     private void findRespawnPositionAndUseSpawnBlock(CallbackInfoReturnable<TeleportTransition> info) {
+        var thisServerPlayer = (ServerPlayer) (Object) this;
         var config = AdventurersRespawns.getConfig();
 
         if (config.respawnAtStructures) {
-            var respawnPos = SpawnPositionFeature.getSpawnPosition((ServerPlayer) (Object) this);
+            var respawnDimensionalBlockPos = SpawnPositionFeature.getSpawnPosition(thisServerPlayer);
 
-            if (respawnPos.isPresent()) {
-                info.setReturnValue(new TeleportTransition(
-                    this.level(),
-                    Vec3.atBottomCenterOf(respawnPos.get()),
+            if (respawnDimensionalBlockPos.isEmpty()) {
+                AdventurersRespawns.getLogger().warn("No structure found for respawning. Falling back to vanilla behavior.");
+                return;
+            }
+
+            info.setReturnValue(
+                new TeleportTransition(
+                    respawnDimensionalBlockPos.get().level(),
+                    Vec3.atBottomCenterOf(respawnDimensionalBlockPos.get().blockPos()),
                     Vec3.ZERO, // Velocity
                     RandomGenerator.getDefault().nextFloat(0.0F, 360.0F), // Yaw
                     0.0F, // Pitch
@@ -46,10 +47,8 @@ public abstract class ServerPlayerMixin extends Player {
                     false, // As passenger
                     Set.of(), // Relatives
                     TeleportTransition.DO_NOTHING // Post teleport transition
-                ));
-            } else {
-                AdventurersRespawns.getLogger().warn("No structure found for respawning. Falling back to vanilla behavior.");
-            }
+                )
+            );
         }
     }
 

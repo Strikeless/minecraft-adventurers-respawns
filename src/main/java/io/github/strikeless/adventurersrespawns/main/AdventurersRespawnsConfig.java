@@ -33,6 +33,7 @@ public class AdventurersRespawnsConfig {
     @SerialEntry
     public int respawnStructureSearchRadiusChunks = 256;
 
+    // TODO: Expose this in a user-friendly manner in the modmenu GUI.
     @SerialEntry
     public List<String> respawnStructureIdentifiers = new ArrayList<>(List.of(
             "minecraft:villages",
@@ -42,8 +43,11 @@ public class AdventurersRespawnsConfig {
             "nova_structures:witch_villa"
     ));
 
-    @SerialEntry
     public boolean respawnStructureIgnoreVerticalBoundsFix = false;
+
+    // TODO: Expose this in the modmenu GUI once respawn structures can be edited from there.
+    @SerialEntry(comment = "Whether to always respawn in the overworld, if the player died in the end or nether.\nCoordinates are translated as if the player had travelled through a portal.\n")
+    public boolean respawnStructureAlwaysInOverworld = true;
 
     @SerialEntry
     public int respawnHealth = 20;

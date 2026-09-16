@@ -19,5 +19,5 @@ public interface DeathScreenAccessor {
 
     @Accessor
     @Mutable
-    void setDeathScore(Component scoreText);
+    void setDeathScore(Component component);
 }
