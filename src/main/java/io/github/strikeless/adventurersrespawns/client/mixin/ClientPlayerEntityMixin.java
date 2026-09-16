@@ -63,10 +63,10 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
         var mc = Minecraft.getInstance();
 
         //? minecraft: < 26.2 {
-        var currentScreen = mc.screen;
-        //? } else {
-        /*var currentScreen = mc.gui.screen();
-        *///? }
+        /*var currentScreen = mc.screen;
+        *///? } else {
+        var currentScreen = mc.gui.screen();
+        //? }
 
         if (currentScreen instanceof DeathScreen deathScreen) {
             var deathScreenAccessor = (DeathScreenAccessor) deathScreen;

@@ -5,9 +5,7 @@
  */
 
 plugins {
-    id("net.fabricmc.fabric-loom") version "1.16.1"
-
-    // `maven-publish`
+    id("net.fabricmc.fabric-loom") version "1.17-SNAPSHOT"
     id("me.modmuss50.mod-publish-plugin") version "2.0.0-beta.1"
 }
 
@@ -42,7 +40,7 @@ repositories {
     // YACL
     maven("https://maven.isxander.dev/releases") { name = "Xander Maven" }
     // ModMenu
-    maven("https://maven.terraformersmc.com/repository/maven-terraformers/") { name = "Terraformers" }
+    maven("https://maven.terraformersmc.com/") { name = "Terraformers" }
 }
 
 dependencies {
@@ -105,7 +103,7 @@ tasks {
     // Builds the version into a shared folder in `build/libs/${mod version}/`
     register<Copy>("buildAndCollect") {
         group = "build"
-        from(jar.map { it.archiveFile } /*, remapSourcesJar.map { it.archiveFile }   Not sure how to port this to 26.1, TODO: figure it out and uncomment */)
+        from(jar.map { it.archiveFile })
         into(rootProject.layout.buildDirectory.file("libs/${project.property("mod.version")}"))
         dependsOn("build")
     }
@@ -116,7 +114,7 @@ publishMods {
     file = tasks.jar.map { it.archiveFile.get() }
     //additionalFiles.from(tasks.remapSourcesJar.map { it.archiveFile.get() })
     displayName = "${property("mod.name")} ${property("mod.version")} for ${property("mod.mc_title")}"
-    version = property("mod.version") as String
+    version = "${property("mod.version")}+${property("mod.mc_dep")}"
     changelog = rootProject.file("CHANGELOG.md").readText()
     type = STABLE
     modLoaders.add("fabric")
