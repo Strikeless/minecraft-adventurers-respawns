@@ -5,8 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AdventurersRespawns implements ModInitializer {
-    private static final String LOGGER_NAME = "adventurers-respawns";
-    private static Logger LOGGER = LoggerFactory.getLogger(LOGGER_NAME);
+    public static final String MOD_ID = "adventurers-respawns";
+
+    private static Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     public static AdventurersRespawnsConfig getConfig() {
         return AdventurersRespawnsConfig.HANDLER.instance();
@@ -24,12 +25,12 @@ public class AdventurersRespawns implements ModInitializer {
 
         // Update logger level from the config, if set.
         if (config.logLevelOverride != null) {
-            org.apache.logging.log4j.core.config.Configurator.setLevel(LOGGER_NAME, config.logLevelOverride);
+            org.apache.logging.log4j.core.config.Configurator.setLevel(MOD_ID, config.logLevelOverride);
             refreshLogger();
         }
     }
 
     private static void refreshLogger() {
-        LOGGER = LoggerFactory.getLogger(LOGGER_NAME);
+        LOGGER = LoggerFactory.getLogger(MOD_ID);
     }
 }

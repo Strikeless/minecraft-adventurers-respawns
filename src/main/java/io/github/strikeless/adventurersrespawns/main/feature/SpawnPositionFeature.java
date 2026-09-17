@@ -7,17 +7,13 @@ import io.github.strikeless.adventurersrespawns.main.AdventurersRespawns;
 import io.github.strikeless.adventurersrespawns.main.util.CallbackManager;
 import io.github.strikeless.adventurersrespawns.main.util.iter.Iterators;
 import net.minecraft.commands.arguments.ResourceOrTagKeyArgument;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.HolderSet;
-import net.minecraft.core.SectionPos;
+import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.dimension.DimensionType;
@@ -26,6 +22,7 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SpawnPositionFeature {
     public static final CallbackManager<SpawnChunkSearchStatus> CHUNK_SEARCH_STATUS_CALLBACK = new CallbackManager<>();
@@ -54,6 +51,8 @@ public class SpawnPositionFeature {
     }
 
     public static Optional<DimensionalBlockPos> getSpawnPosition(ServerPlayer player) {
+        var config = AdventurersRespawns.getConfig();
+
         var effectiveDeathPosition = getEffectiveDeathDimensionalPosition(player)
                 .orElse(null);
         if (effectiveDeathPosition == null) {
@@ -61,7 +60,11 @@ public class SpawnPositionFeature {
             return Optional.empty();
         }
 
-        var allowedSpawnStructureKeys = getSpawnStructureResourceKeysInLevel(effectiveDeathPosition.level());
+        var allowedSpawnStructureKeys = parseResourceOrTagKeys(
+                effectiveDeathPosition.level().registryAccess().lookupOrThrow(Registries.STRUCTURE),
+                config.respawnStructureKeys
+        );
+
         var spawnStructureCandidates = searchSpawnStructureCandidates(effectiveDeathPosition, allowedSpawnStructureKeys);
 
         /*
@@ -72,10 +75,7 @@ public class SpawnPositionFeature {
             var spawnStructureCandidate = Objects.requireNonNull(spawnStructureCandidates.next());
             AdventurersRespawns.getLogger().info("Found spawn structure candidate of type {} at {}", spawnStructureCandidate.structureKey().identifier(), spawnStructureCandidate.bounds());
 
-            var favorableSpawnBlockPos = findFavorableSpawnBlockPosInStructureBounds(
-                    effectiveDeathPosition.level(),
-                    spawnStructureCandidate.bounds()
-            ).orElse(null);
+            var favorableSpawnBlockPos = findFavorableSpawnBlockPosInStructureBounds(effectiveDeathPosition.level(), spawnStructureCandidate.bounds()).orElse(null);
             if (favorableSpawnBlockPos == null) {
                 AdventurersRespawns.getLogger().warn("Didn't find a favorable spawn position within structure {} at {}", spawnStructureCandidate.structureKey().identifier(), spawnStructureCandidate.bounds());
                 continue;
@@ -87,52 +87,6 @@ public class SpawnPositionFeature {
 
         // Not a single spawn structure candidate was usable.
         return Optional.empty();
-    }
-
-    private static List<ResourceKey<Structure>> getSpawnStructureResourceKeysInLevel(ServerLevel level) {
-        var config = AdventurersRespawns.getConfig();
-        var levelStructureRegistry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
-
-        var spawnStructureResourceKeys = new ArrayList<ResourceKey<Structure>>();
-
-        for (var structureInput : config.respawnStructures) {
-            Either<ResourceKey<Structure>, TagKey<Structure>> structureResourceOrTagKey;
-            try {
-                structureResourceOrTagKey = ResourceOrTagKeyArgument.resourceOrTagKey(Registries.STRUCTURE)
-                        .parse(new StringReader(structureInput))
-                        .unwrap();
-            } catch (CommandSyntaxException ex) {
-                AdventurersRespawns.getLogger().error("Invalid respawn structure definition '{}': {}", ex.getInput(), ex.getMessage());
-                continue;
-            }
-
-            var structureHolderSet = structureResourceOrTagKey.map(
-                    // This is a direct structure resource key, like "minecraft:village_plains".
-                    structureResourceKey -> levelStructureRegistry.get(structureResourceKey)
-                            .map(HolderSet::direct)
-                            .orElse(null),
-                    // This is a tag, like "#minecraft:village".
-                    structureTagKey -> levelStructureRegistry.get(structureTagKey)
-                            .orElse(null)
-            );
-            if (structureHolderSet == null) {
-                AdventurersRespawns.getLogger().debug("No structure resource or tag {} registered for level {}. It may be a typo or registered for another dimension.", structureInput, level.dimension().identifier());
-                continue;
-            }
-
-            for (var structureHolder : structureHolderSet) {
-                var structureHolderKey = structureHolder.unwrapKey().orElse(null);
-                if (structureHolderKey == null) {
-                    AdventurersRespawns.getLogger().warn("A structure type matches '{}', but it has no resource key and cannot be used.", structureInput);
-                    continue;
-                }
-
-                spawnStructureResourceKeys.add(structureHolderKey);
-            }
-        }
-
-        AdventurersRespawns.getLogger().debug("Found {} structure types for respawning.", spawnStructureResourceKeys.size());
-        return spawnStructureResourceKeys;
     }
 
     private static Iterator<StructureBounds> searchSpawnStructureCandidates(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> allowedStructureKeys) {
@@ -178,7 +132,7 @@ public class SpawnPositionFeature {
                 var chunkZ = playerChunkZ + chunkOffsetZ;
                 var chunk = dimensionalPos.level().getChunk(chunkX, chunkZ, ChunkStatus.STRUCTURE_STARTS);
 
-                var chunkFoundStructureBounds = getStructureBoundsWithinChunk(
+                var chunkFoundStructureBounds = getMatchingStructureBoundsWithinChunk(
                         dimensionalPos.level(),
                         chunk,
                         structureKeys
@@ -228,7 +182,7 @@ public class SpawnPositionFeature {
         // NOTE: Since we're passing all the searchable structure keys here, there can be an edge-case where
         //       we find the bounds of another respawn-fit structure than the one which was located, if many such structures start at the same chunk.
         //       This doesn't really matter at all but is still something to keep in mind. Could be fixed by only passing the key of the found structure.
-        var chunkStructureBounds = getStructureBoundsWithinChunk(
+        var chunkStructureBounds = getMatchingStructureBoundsWithinChunk(
                 dimensionalPos.level(),
                 structureStartChunk,
                 structureKeys
@@ -242,7 +196,7 @@ public class SpawnPositionFeature {
         return chunkStructureBounds.stream().findAny();
     }
 
-    private static List<StructureBounds> getStructureBoundsWithinChunk(ServerLevel level, ChunkAccess chunk, List<ResourceKey<Structure>> allowedStructureKeys) {
+    private static List<StructureBounds> getMatchingStructureBoundsWithinChunk(ServerLevel level, ChunkAccess chunk, List<ResourceKey<Structure>> allowedStructureKeys) {
         var chunkFitStructureBounds = new ArrayList<StructureBounds>();
 
         var chunkStructureStarts = chunk.getAllStarts();
@@ -268,14 +222,10 @@ public class SpawnPositionFeature {
         return chunkFitStructureBounds;
     }
 
-
     private static Optional<BlockPos> findFavorableSpawnBlockPosInStructureBounds(ServerLevel level, BoundingBox structureBounds) {
         var config = AdventurersRespawns.getConfig();
 
-        var bedPositions = new ArrayList<BlockPos>();
-        var fallbackPosition = Optional.<BlockPos>empty();
-
-        // Dirty and flawed hack to fix some weird cases on cliffs where small structures are far above or below their StructureStart bounds.
+        // Dirty and flawed hack to fix some weird cases on cliffs where small structures are far above or below their bounds marked in StructureStart.
         if (config.respawnStructureIgnoreVerticalBoundsFix) {
             structureBounds = new BoundingBox(
                     structureBounds.minX(),
@@ -287,51 +237,90 @@ public class SpawnPositionFeature {
             );
         }
 
+        var favoredNeighboringBlockTypes = parseResourceOrTagKeys(
+                level.registryAccess().lookupOrThrow(Registries.BLOCK),
+                config.respawnNextToBlocks
+        );
+
         /*
-         * Collect all bed positions within the structure bounds and try to find a fallback position to spawn to if no beds are found.
+         * Collect lists of matching block positions for each favored neighbor block type,
+         * so that we can next find valid spawn positions within these in the preferred order.
          */
+        var favoredNeighboringBlockTypePositionLists = favoredNeighboringBlockTypes.stream()
+                .collect(Collectors.toMap(favoredNeighborBlockType -> favoredNeighborBlockType, _ -> new ArrayList<BlockPos>()));
+
         for (int blockX = structureBounds.minX(); blockX <= structureBounds.maxX(); ++blockX) {
             for (int blockZ = structureBounds.minZ(); blockZ <= structureBounds.maxZ(); ++blockZ) {
                 for (int blockY = structureBounds.minY(); blockY <= structureBounds.maxY(); ++blockY) {
                     var blockPos = new BlockPos(blockX, blockY, blockZ);
                     var blockState = level.getBlockState(blockPos);
-                    var block = blockState.getBlock();
 
-                    if (block instanceof BedBlock) {
-                        bedPositions.add(blockPos);
-                    } else {
-                        var testForFallbackPosition = fallbackPosition.isEmpty() || blockY > fallbackPosition.get().getY();
-                        if (testForFallbackPosition && isValidSpawnPosition(level, blockPos)) {
-                            fallbackPosition = Optional.of(blockPos);
-                        }
+                    var blockTypeKey = blockState.typeHolder().unwrapKey().orElse(null);
+                    if (blockTypeKey == null) continue;
+
+                    if (favoredNeighboringBlockTypes.contains(blockTypeKey)) {
+                        var positionsOfBlockType = favoredNeighboringBlockTypePositionLists.get(blockTypeKey);
+                        positionsOfBlockType.add(blockPos);
                     }
                 }
             }
         }
 
-        // Shuffle the bed position list to randomize bed if many were found, instead of always spawning at the same one.
-        Collections.shuffle(bedPositions);
+        /*
+         * Try to find a valid semi-random spawn position next to a found favored neighbor block type,
+         * with descending preferential order of block types.
+         */
+        for (var favoredNeighboringBlockType : favoredNeighboringBlockTypes) {
+            var positionsOfBlockType = favoredNeighboringBlockTypePositionLists.get(favoredNeighboringBlockType);
+            Collections.shuffle(positionsOfBlockType);
 
-        for (var bedPos : bedPositions) {
-            for (var blockOffsetX = -1; blockOffsetX <= 1; ++blockOffsetX) {
-                for (var blockOffsetZ = -1; blockOffsetZ <= 1; ++blockOffsetZ) {
-                    for (var blockOffsetY = 0; blockOffsetY <= 1; ++blockOffsetY) {
-                        var bedNeighborPos = new BlockPos(
-                                bedPos.getX() + blockOffsetX,
-                                bedPos.getY() + blockOffsetY,
-                                bedPos.getZ() + blockOffsetZ
-                        );
+            for (var blockPos : positionsOfBlockType) {
+                var neighborBlockPositions = getCubicNeighborBlockPositions(blockPos);
+                Collections.shuffle(neighborBlockPositions);
 
-                        if (isValidSpawnPosition(level, bedNeighborPos)) {
-                            return Optional.of(bedNeighborPos);
-                        }
+                for (var neighborBlockPos : neighborBlockPositions) {
+                    if (isValidSpawnPosition(level, neighborBlockPos)) {
+                        AdventurersRespawns.getLogger().info("Found valid and preferred spawn position next to a {} at {}", favoredNeighboringBlockType.identifier(), neighborBlockPos);
+                        return Optional.of(neighborBlockPos);
                     }
                 }
             }
         }
 
-        // No beds to spawn next to were found, use the fallback position if one exists.
-        return fallbackPosition;
+        /*
+         * No valid and preferred spawn position was found.
+         * Try to find any valid spawn position in the structure bounds or below it, preferring higher positions.
+         */
+        for (int blockX = structureBounds.minX(); blockX <= structureBounds.maxX(); ++blockX) {
+            for (int blockZ = structureBounds.minZ(); blockZ <= structureBounds.maxZ(); ++blockZ) {
+                for (int blockY = structureBounds.maxY(); blockY > level.getMinY(); --blockY) {
+                    var blockPos = new BlockPos(blockX, blockY, blockZ);
+
+                    if (isValidSpawnPosition(level, blockPos)) {
+                        AdventurersRespawns.getLogger().info("Found valid fallback spawn position at {}", blockPos);
+                        return Optional.of(blockPos);
+                    }
+                }
+            }
+        }
+
+        // No sane spawn position was found.
+        return Optional.empty();
+    }
+
+    private static List<BlockPos> getCubicNeighborBlockPositions(BlockPos pos) {
+        var neighborBlockPositions = new ArrayList<BlockPos>();
+
+        for (var offsetX = -1; offsetX <= 1; ++offsetX) {
+            for (var offsetY = -1; offsetY <= 1; ++offsetY) {
+                for (var offsetZ = -1; offsetZ <= 1; ++offsetZ) {
+                    var neighborBlockPos = new BlockPos(pos.getX() + offsetX, pos.getY() + offsetY, pos.getZ() + offsetZ);
+                    neighborBlockPositions.add(neighborBlockPos);
+                }
+            }
+        }
+
+        return neighborBlockPositions;
     }
 
     private static boolean isValidSpawnPosition(Level level, BlockPos pos) {
@@ -384,5 +373,51 @@ public class SpawnPositionFeature {
                         playerLevel
                 )
         );
+    }
+
+    private static <T> List<ResourceKey<T>> parseResourceOrTagKeys(
+            Registry<T> resourceRegistry,
+            Collection<String> inputKeys
+    ) {
+        var resourceKeys = new ArrayList<ResourceKey<T>>();
+
+        for (var inputKey : inputKeys) {
+            Either<ResourceKey<T>, TagKey<T>> parsedResourceOrTagKey;
+            try {
+                parsedResourceOrTagKey = ResourceOrTagKeyArgument.resourceOrTagKey(resourceRegistry.key())
+                        .parse(new StringReader(inputKey))
+                        .unwrap();
+            } catch (CommandSyntaxException ex) {
+                AdventurersRespawns.getLogger().error("Invalid resource/tag key '{}': {}", ex.getInput(), ex.getMessage());
+                continue;
+            }
+
+            var resourceHolderSet = parsedResourceOrTagKey.map(
+                    // This is a direct resource key, like "minecraft:village_plains".
+                    parsedResourceKey -> resourceRegistry.get(parsedResourceKey)
+                            .map(HolderSet::direct)
+                            .orElse(null),
+                    // This is a tag, like "#minecraft:village".
+                    parsedTagKey -> resourceRegistry.get(parsedTagKey)
+                            .orElse(null)
+            );
+            if (resourceHolderSet == null) {
+                AdventurersRespawns.getLogger().debug("The resource/tag key '{}' is not registered in this registry.", inputKey);
+                continue;
+            }
+
+            for (var resourceHolder : resourceHolderSet) {
+                var resourceKey = resourceHolder.unwrapKey().orElse(null);
+                if (resourceKey == null) {
+                    // Maybe this is reachable if some tag refers to a programmatically added resource, or something like that? Haven't delved too deep into it.
+                    AdventurersRespawns.getLogger().debug("The resource/tag key '{}' matches a resource, but the matching resource itself has no key and so cannot be used.", inputKey);
+                    continue;
+                }
+
+                resourceKeys.add(resourceKey);
+            }
+        }
+
+        return resourceKeys;
     }
 }

@@ -38,8 +38,8 @@ public class AdventurersRespawnsConfig {
     public int respawnStructureSearchRadiusChunks = 256;
 
     // TODO: Expose this in a user-friendly manner in the modmenu GUI.
-    @SerialEntry
-    public List<String> respawnStructures = new ArrayList<>(List.of(
+    @SerialEntry(comment = "Structures or structure tags, at which the player may respawn in.")
+    public List<String> respawnStructureKeys = new ArrayList<>(List.of(
             "#minecraft:village",
             "minecraft:igloo",
             "#minecraft:village",
@@ -55,8 +55,16 @@ public class AdventurersRespawnsConfig {
             "structory:old_manor"
     ));
 
+    @SerialEntry(comment = "Blocks or block tags, next to which respawns will first be tried, in descending order of preference.\n")
+    public List<String> respawnNextToBlocks = new ArrayList<>(List.of(
+            "#minecraft:beds",
+            "minecraft:chest",
+            "minecraft:barrel",
+            "#minecraft:doors"
+    ));
+
     // TODO: Expose this in the modmenu GUI once respawn structures can be edited from there.
-    @SerialEntry(comment = "Whether to always respawn in the overworld, if the player died in the end or nether.\nCoordinates are translated as if the player had travelled through a portal.\n")
+    @SerialEntry(comment = "Whether to always respawn in the overworld, if the player died in the end or nether.\nCoordinates are translated as if the player had traveled through a portal.\n")
     public boolean respawnStructureAlwaysInOverworld = true;
 
     @SerialEntry
