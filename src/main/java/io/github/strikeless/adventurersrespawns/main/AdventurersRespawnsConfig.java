@@ -8,6 +8,7 @@ import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,9 @@ public class AdventurersRespawnsConfig {
             })
             .build();
 
+    @SerialEntry(nullable = true)
+    public @Nullable String logLevelOverride = null;
+
     @SerialEntry
     public boolean respawnAtStructures = true;
 
@@ -35,19 +39,28 @@ public class AdventurersRespawnsConfig {
 
     // TODO: Expose this in a user-friendly manner in the modmenu GUI.
     @SerialEntry
-    public List<String> respawnStructureIdentifiers = new ArrayList<>(List.of(
-            "minecraft:villages",
+    public List<String> respawnStructures = new ArrayList<>(List.of(
+            "#minecraft:village",
             "minecraft:igloo",
-            // Structures from the Dungeons and Taverns datapack
-            "nova_structures:taverns",
-            "nova_structures:witch_villa"
+            "#minecraft:village",
+            "minecraft:igloo",
+            // Structures from various mods/datapacks.
+            "#nova_structures:taverns",
+            "#nova_structures:remnants",
+            "#nova_structures:ruin_town",
+            "nova_structures:witch_villa",
+            "nova_structures:bunker",
+            "structory:graveyard",
+            "structory:firetower",
+            "structory:old_manor"
     ));
-
-    public boolean respawnStructureIgnoreVerticalBoundsFix = false;
 
     // TODO: Expose this in the modmenu GUI once respawn structures can be edited from there.
     @SerialEntry(comment = "Whether to always respawn in the overworld, if the player died in the end or nether.\nCoordinates are translated as if the player had travelled through a portal.\n")
     public boolean respawnStructureAlwaysInOverworld = true;
+
+    @SerialEntry
+    public boolean respawnStructureIgnoreVerticalBoundsFix = true;
 
     @SerialEntry
     public int respawnHealth = 20;

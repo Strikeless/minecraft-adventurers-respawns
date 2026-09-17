@@ -29,17 +29,16 @@ public abstract class ServerPlayerMixin extends Player {
         var config = AdventurersRespawns.getConfig();
 
         if (config.respawnAtStructures) {
-            var respawnDimensionalBlockPos = SpawnPositionFeature.getSpawnPosition(thisServerPlayer);
-
-            if (respawnDimensionalBlockPos.isEmpty()) {
-                AdventurersRespawns.getLogger().warn("No structure found for respawning. Falling back to vanilla behavior.");
+            var respawnDimensionalBlockPos = SpawnPositionFeature.getSpawnPosition(thisServerPlayer).orElse(null);
+            if (respawnDimensionalBlockPos == null) {
+                AdventurersRespawns.getLogger().error("Didn't find any structure that could be spawned at. Falling back to vanilla behavior.");
                 return;
             }
 
             info.setReturnValue(
                 new TeleportTransition(
-                    respawnDimensionalBlockPos.get().level(),
-                    Vec3.atBottomCenterOf(respawnDimensionalBlockPos.get().blockPos()),
+                    respawnDimensionalBlockPos.level(),
+                    Vec3.atBottomCenterOf(respawnDimensionalBlockPos.blockPos()),
                     Vec3.ZERO, // Velocity
                     RandomGenerator.getDefault().nextFloat(0.0F, 360.0F), // Yaw
                     0.0F, // Pitch

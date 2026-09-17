@@ -1,16 +1,21 @@
 package io.github.strikeless.adventurersrespawns.main.feature;
 
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.datafixers.util.Either;
 import io.github.strikeless.adventurersrespawns.main.AdventurersRespawns;
 import io.github.strikeless.adventurersrespawns.main.util.CallbackManager;
+import io.github.strikeless.adventurersrespawns.main.util.iter.Iterators;
+import net.minecraft.commands.arguments.ResourceOrTagKeyArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -20,11 +25,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.random.RandomGenerator;
+import java.util.*;
 
 public class SpawnPositionFeature {
     public static final CallbackManager<SpawnChunkSearchStatus> CHUNK_SEARCH_STATUS_CALLBACK = new CallbackManager<>();
@@ -46,6 +47,12 @@ public class SpawnPositionFeature {
     ) {
     }
 
+    private record StructureBounds(
+            ResourceKey<Structure> structureKey,
+            BoundingBox bounds
+    ) {
+    }
+
     public static Optional<DimensionalBlockPos> getSpawnPosition(ServerPlayer player) {
         var effectiveDeathPosition = getEffectiveDeathDimensionalPosition(player)
                 .orElse(null);
@@ -54,110 +61,109 @@ public class SpawnPositionFeature {
             return Optional.empty();
         }
 
-        var spawnStructureTypes = getSpawnStructureResourceKeysInLevel(effectiveDeathPosition.level());
+        var allowedSpawnStructureKeys = getSpawnStructureResourceKeysInLevel(effectiveDeathPosition.level());
+        var spawnStructureCandidates = searchSpawnStructureCandidates(effectiveDeathPosition, allowedSpawnStructureKeys);
 
-        var spawnStructureBounds = findBoundsOfNearbyStructureOfType(effectiveDeathPosition, spawnStructureTypes)
-                .orElse(null);
-        if (spawnStructureBounds == null) {
-            AdventurersRespawns.getLogger().warn(
-                    "Didn't find a structure to spawn in. Make sure there are configured spawn structures that generate in {}",
-                    effectiveDeathPosition.level().dimension().identifier().getPath()
-            );
-            return Optional.empty();
-        }
+        /*
+         * Try every spawn structure candidate in order,
+         * falling back to the next candidate if one isn't usable.
+         */
+        while (spawnStructureCandidates.hasNext()) {
+            var spawnStructureCandidate = Objects.requireNonNull(spawnStructureCandidates.next());
+            AdventurersRespawns.getLogger().info("Found spawn structure candidate of type {} at {}", spawnStructureCandidate.structureKey().identifier(), spawnStructureCandidate.bounds());
 
-        var favorableSpawnBlockPos = findFavorableSpawnBlockPosInStructureBounds(effectiveDeathPosition.level(), spawnStructureBounds)
-                .orElse(null);
-        if (favorableSpawnBlockPos == null) {
-            AdventurersRespawns.getLogger().warn("Didn't find a favorable spawn position in the selected spawn structure.");
-            return Optional.empty();
-        }
-
-        return Optional.of(
-                new DimensionalBlockPos(
-                        favorableSpawnBlockPos,
-                        effectiveDeathPosition.level()
-                )
-        );
-    }
-
-
-    private static List<ResourceKey<Structure>> getSpawnStructureResourceKeysInLevel(ServerLevel level) {
-        var config = AdventurersRespawns.getConfig();
-        var structureRegistry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
-        var structureSetRegistry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET);
-
-        var spawnStructureTypes = new ArrayList<Structure>();
-
-        for (var structureIdentifierString : config.respawnStructureIdentifiers) {
-            var structureIdentifier = Identifier.read(structureIdentifierString)
-                    .result()
-                    .orElse(null);
-
-            if (structureIdentifier == null) {
-                AdventurersRespawns.getLogger().error("Invalid structure identifier '{}'.", structureIdentifierString);
+            var favorableSpawnBlockPos = findFavorableSpawnBlockPosInStructureBounds(
+                    effectiveDeathPosition.level(),
+                    spawnStructureCandidate.bounds()
+            ).orElse(null);
+            if (favorableSpawnBlockPos == null) {
+                AdventurersRespawns.getLogger().warn("Didn't find a favorable spawn position within structure {} at {}", spawnStructureCandidate.structureKey().identifier(), spawnStructureCandidate.bounds());
                 continue;
             }
 
-            var structure = structureRegistry.getValue(structureIdentifier);
-            var structureSet = structureSetRegistry.getValue(structureIdentifier);
+            var spawnDimensionalBlockPos = new DimensionalBlockPos(favorableSpawnBlockPos, effectiveDeathPosition.level());
+            return Optional.of(spawnDimensionalBlockPos);
+        }
 
-            if (structure != null) {
-                spawnStructureTypes.add(structure);
-            } else if (structureSet != null) {
-                List<Structure> setStructures = structureSet.structures().stream()
-                        .map(setEntry -> {
-                            var setStructureEntry = setEntry.structure();
+        // Not a single spawn structure candidate was usable.
+        return Optional.empty();
+    }
 
-                            return setStructureEntry.unwrap()
-                                    .map(
-                                            structureRegistry::getValueOrThrow,
-                                            setStructure -> setStructure
-                                    );
-                        })
-                        .toList();
+    private static List<ResourceKey<Structure>> getSpawnStructureResourceKeysInLevel(ServerLevel level) {
+        var config = AdventurersRespawns.getConfig();
+        var levelStructureRegistry = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
 
-                AdventurersRespawns.getLogger().debug("Found {} structure types in set '{}'.", setStructures.size(), structureIdentifierString);
-                spawnStructureTypes.addAll(setStructures);
-            } else {
-                AdventurersRespawns.getLogger().debug("Didn't find structure type '{}'. It may be registered for another dimension, in which case this is OK.", structureIdentifierString);
+        var spawnStructureResourceKeys = new ArrayList<ResourceKey<Structure>>();
+
+        for (var structureInput : config.respawnStructures) {
+            Either<ResourceKey<Structure>, TagKey<Structure>> structureResourceOrTagKey;
+            try {
+                structureResourceOrTagKey = ResourceOrTagKeyArgument.resourceOrTagKey(Registries.STRUCTURE)
+                        .parse(new StringReader(structureInput))
+                        .unwrap();
+            } catch (CommandSyntaxException ex) {
+                AdventurersRespawns.getLogger().error("Invalid respawn structure definition '{}': {}", ex.getInput(), ex.getMessage());
+                continue;
+            }
+
+            var structureHolderSet = structureResourceOrTagKey.map(
+                    // This is a direct structure resource key, like "minecraft:village_plains".
+                    structureResourceKey -> levelStructureRegistry.get(structureResourceKey)
+                            .map(HolderSet::direct)
+                            .orElse(null),
+                    // This is a tag, like "#minecraft:village".
+                    structureTagKey -> levelStructureRegistry.get(structureTagKey)
+                            .orElse(null)
+            );
+            if (structureHolderSet == null) {
+                AdventurersRespawns.getLogger().debug("No structure resource or tag {} registered for level {}. It may be a typo or registered for another dimension.", structureInput, level.dimension().identifier());
+                continue;
+            }
+
+            for (var structureHolder : structureHolderSet) {
+                var structureHolderKey = structureHolder.unwrapKey().orElse(null);
+                if (structureHolderKey == null) {
+                    AdventurersRespawns.getLogger().warn("A structure type matches '{}', but it has no resource key and cannot be used.", structureInput);
+                    continue;
+                }
+
+                spawnStructureResourceKeys.add(structureHolderKey);
             }
         }
 
-        AdventurersRespawns.getLogger().debug("Found {} structure types for respawning.", spawnStructureTypes.size());
-
-        return spawnStructureTypes.stream()
-                .map(structureType -> structureRegistry.getResourceKey(structureType).orElseThrow())
-                .toList();
+        AdventurersRespawns.getLogger().debug("Found {} structure types for respawning.", spawnStructureResourceKeys.size());
+        return spawnStructureResourceKeys;
     }
 
-
-    private static Optional<BoundingBox> findBoundsOfNearbyStructureOfType(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> structureKeys) {
+    private static Iterator<StructureBounds> searchSpawnStructureCandidates(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> allowedStructureKeys) {
         var config = AdventurersRespawns.getConfig();
 
         /*
-         * First try searching in the fuzzy range, picking a random structure if many are found within the range.
+         * Search all structure candidates within the configured fuzzy range,
+         * shuffling them so that their preference order is randomized.
          */
-        var fuzzyRangeStructureBounds = findAllStructuresOfTypeWithinExtent(dimensionalPos, structureKeys, config.respawnStructureFuzzyRadiusChunks);
-        if (!fuzzyRangeStructureBounds.isEmpty()) {
-            // Found one or more structures within the fuzzy search range. Pick one of them.
-            var randomIndex = RandomGenerator.getDefault().nextInt(0, fuzzyRangeStructureBounds.size());
-            var randomStructure = fuzzyRangeStructureBounds.get(randomIndex);
-            return Optional.of(randomStructure);
-        }
+        var fuzzyRangeSpawnStructureCandidates = findAllStructuresOfTypeWithinExtent(dimensionalPos, allowedStructureKeys, config.respawnStructureFuzzyRadiusChunks);
+        Collections.shuffle(fuzzyRangeSpawnStructureCandidates);
 
         /*
-         * No structures were found in the fuzzy range, search for any structure within the maximum search range.
+         * Search for the closest structure candidate within the configured full search radius.
+         * TODO: We should implement this as a lazy iterator that searches for the next closest structure candidate
+         *       with each next() call, so that even if we can't spawn at the very closest structure, we could try
+         *       the next closest structure and so on, instead of immediately falling back to vanilla behavior.
          */
-        AdventurersRespawns.getLogger().debug("No spawn structure found in fuzzy range, searching for closest...");
-        return findClosestStructureOfType(dimensionalPos, structureKeys, config.respawnStructureSearchRadiusChunks);
+        var fullRangeSpawnStructureCandidate = findNearestStructureOfTypeWithinExtent(dimensionalPos, allowedStructureKeys, config.respawnStructureSearchRadiusChunks);
+
+        return Iterators.chain(
+                fuzzyRangeSpawnStructureCandidates.iterator(),
+                Iterators.onceOrNever(fullRangeSpawnStructureCandidate)
+        );
     }
 
-    private static List<BoundingBox> findAllStructuresOfTypeWithinExtent(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> structureKeys, int searchExtentChunks) {
+    private static List<StructureBounds> findAllStructuresOfTypeWithinExtent(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> structureKeys, int searchExtentChunks) {
         // This could probably be optimised to utilise StructurePlacementCalculator more directly
         // instead of loading/generating whole chunks. Something similar to how findClosestStructure does it.
 
-        var foundStructureBounds = new ArrayList<BoundingBox>();
+        var foundStructureBounds = new ArrayList<StructureBounds>();
 
         var playerChunkX = SectionPos.blockToSectionCoord(dimensionalPos.blockPos().getX());
         var playerChunkZ = SectionPos.blockToSectionCoord(dimensionalPos.blockPos().getZ());
@@ -172,7 +178,7 @@ public class SpawnPositionFeature {
                 var chunkZ = playerChunkZ + chunkOffsetZ;
                 var chunk = dimensionalPos.level().getChunk(chunkX, chunkZ, ChunkStatus.STRUCTURE_STARTS);
 
-                var chunkFoundStructureBounds = getBoundsOfStructuresOfTypeWithinChunk(
+                var chunkFoundStructureBounds = getStructureBoundsWithinChunk(
                         dimensionalPos.level(),
                         chunk,
                         structureKeys
@@ -180,13 +186,13 @@ public class SpawnPositionFeature {
                 foundStructureBounds.addAll(chunkFoundStructureBounds);
             }
         }
-
         CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(true, searchExtentChunks, searchedChunkCount));
+
         AdventurersRespawns.getLogger().debug("Found {} structures.", foundStructureBounds.size());
         return foundStructureBounds;
     }
 
-    private static Optional<BoundingBox> findClosestStructureOfType(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> structureKeys, int searchExtentChunks) {
+    private static Optional<StructureBounds> findNearestStructureOfTypeWithinExtent(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> structureKeys, int searchExtentChunks) {
         var server = dimensionalPos.level().getServer();
         var levelChunkGenerator = dimensionalPos.level().getChunkSource().getGenerator();
 
@@ -198,7 +204,7 @@ public class SpawnPositionFeature {
         );
 
         CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(false, searchExtentChunks, null));
-        var blockPosStructureEntryPair = levelChunkGenerator.findNearestMapStructure(
+        var foundBlockPosStructureEntryPair = levelChunkGenerator.findNearestMapStructure(
                 dimensionalPos.level(),
                 structureRegistryEntryList,
                 dimensionalPos.blockPos(),
@@ -207,7 +213,7 @@ public class SpawnPositionFeature {
         );
         CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(true, searchExtentChunks, null));
 
-        if (blockPosStructureEntryPair == null) {
+        if (foundBlockPosStructureEntryPair == null) {
             // No structure was found.
             return Optional.empty();
         }
@@ -216,19 +222,19 @@ public class SpawnPositionFeature {
          * A structure was found. Since the ChunkGenerator.locateStructure method only gives us the
          * starting location of the structure, we still need to find the bounds of the structure ourselves.
          */
-        var structureBlockPos = blockPosStructureEntryPair.getFirst();
+        var structureBlockPos = foundBlockPosStructureEntryPair.getFirst();
         var structureStartChunk = dimensionalPos.level().getChunk(structureBlockPos);
 
-        // NOTE: Since we're passing all the searchable structure keys here, there might be an edge-case where
+        // NOTE: Since we're passing all the searchable structure keys here, there can be an edge-case where
         //       we find the bounds of another respawn-fit structure than the one which was located, if many such structures start at the same chunk.
         //       This doesn't really matter at all but is still something to keep in mind. Could be fixed by only passing the key of the found structure.
-        var chunkStructureBounds = getBoundsOfStructuresOfTypeWithinChunk(
+        var chunkStructureBounds = getStructureBoundsWithinChunk(
                 dimensionalPos.level(),
                 structureStartChunk,
                 structureKeys
         );
         if (chunkStructureBounds.isEmpty()) {
-            AdventurersRespawns.getLogger().error("A structure was located at {}, but its bounds weren't resolved? This is likely a bug, please report it.", structureBlockPos);
+            AdventurersRespawns.getLogger().error("A structure was located at {}, but its bounds weren't resolved? This is a bug, please report it.", structureBlockPos);
             return Optional.empty();
         }
 
@@ -236,23 +242,27 @@ public class SpawnPositionFeature {
         return chunkStructureBounds.stream().findAny();
     }
 
-    private static List<BoundingBox> getBoundsOfStructuresOfTypeWithinChunk(ServerLevel level, ChunkAccess chunk, List<ResourceKey<Structure>> structureKeys) {
+    private static List<StructureBounds> getStructureBoundsWithinChunk(ServerLevel level, ChunkAccess chunk, List<ResourceKey<Structure>> allowedStructureKeys) {
+        var chunkFitStructureBounds = new ArrayList<StructureBounds>();
+
         var chunkStructureStarts = chunk.getAllStarts();
-        var chunkFitStructureBounds = new ArrayList<BoundingBox>();
-
         for (var structureStart : chunkStructureStarts.values()) {
-            // NOTE: It's a Structure, not a StructureType, I just find this name more describing in this context.
-            var structureType = structureStart.getStructure();
-            var structureKey = level.registryAccess().lookupOrThrow(Registries.STRUCTURE).getResourceKey(structureType).orElseThrow();
+            var structureImplementation = structureStart.getStructure();
+            var structureBounds = structureStart.getBoundingBox();
 
-            AdventurersRespawns.getLogger().debug("Found structure of type '{}'.", structureKey);
-
-            if (structureKeys.contains(structureKey)) {
-                AdventurersRespawns.getLogger().debug("Structure of type '{}' is fit for spawning.", structureType);
-
-                var structureBounds = structureStart.getBoundingBox();
-                chunkFitStructureBounds.add(structureBounds);
+            var structureKey = level.registryAccess().lookupOrThrow(Registries.STRUCTURE).getResourceKey(structureImplementation).orElse(null);
+            if (structureKey == null) {
+                AdventurersRespawns.getLogger().warn("Found a structure at {}, but it is not registered in the level's structure registry.", structureBounds);
+                continue;
             }
+
+            if (!allowedStructureKeys.contains(structureKey)) {
+                AdventurersRespawns.getLogger().debug("Found unfit structure {}.", structureKey);
+                continue;
+            }
+            AdventurersRespawns.getLogger().debug("Found fit structure {} at {}", structureKey, structureBounds);
+
+            chunkFitStructureBounds.add(new StructureBounds(structureKey, structureBounds));
         }
 
         return chunkFitStructureBounds;
