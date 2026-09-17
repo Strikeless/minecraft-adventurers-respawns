@@ -12,8 +12,12 @@ public class Iterators {
         return new ChainIterator<>(innerIterators);
     }
 
-    public static <T> OnceIterator<T> once(@Nullable T value) {
+    public static <T> OnceIterator<T> once(@NonNull T value) {
         return OnceIterator.of(value);
+    }
+
+    public static <T> OnceIterator<T> onceNullable(@Nullable T value) {
+        return OnceIterator.ofNullable(value);
     }
 
     public static <T> OnceIterator<T> onceOrNever(@Nullable T value) {

@@ -113,7 +113,7 @@ public class SpawnPositionFeature {
         );
     }
 
-    private static List<StructureBounds> findAllStructuresOfTypeWithinExtent(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> structureKeys, int searchExtentChunks) {
+    private static List<StructureBounds> findAllStructuresOfTypeWithinExtent(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> allowedStructureKeys, int searchExtentChunks) {
         // This could probably be optimised to utilise StructurePlacementCalculator more directly
         // instead of loading/generating whole chunks. Something similar to how findClosestStructure does it.
 
@@ -135,7 +135,7 @@ public class SpawnPositionFeature {
                 var chunkFoundStructureBounds = getMatchingStructureBoundsWithinChunk(
                         dimensionalPos.level(),
                         chunk,
-                        structureKeys
+                        allowedStructureKeys
                 );
                 foundStructureBounds.addAll(chunkFoundStructureBounds);
             }
@@ -146,21 +146,20 @@ public class SpawnPositionFeature {
         return foundStructureBounds;
     }
 
-    private static Optional<StructureBounds> findNearestStructureOfTypeWithinExtent(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> structureKeys, int searchExtentChunks) {
-        var server = dimensionalPos.level().getServer();
+    private static Optional<StructureBounds> findNearestStructureOfTypeWithinExtent(DimensionalBlockPos dimensionalPos, List<ResourceKey<Structure>> allowedStructureKeys, int searchExtentChunks) {
         var levelChunkGenerator = dimensionalPos.level().getChunkSource().getGenerator();
+        var levelStructureRegistry = dimensionalPos.level().registryAccess().lookupOrThrow(Registries.STRUCTURE);
 
-        var structureRegistry = server.registryAccess().lookupOrThrow(Registries.STRUCTURE);
-        var structureRegistryEntryList = HolderSet.direct(
-                structureKeys.stream()
-                        .map(structureKey -> structureRegistry.get(structureKey.identifier()).orElseThrow())
+        var allowedStructureKeysHolderSet = HolderSet.direct(
+                allowedStructureKeys.stream()
+                        .map(structureKey -> levelStructureRegistry.get(structureKey).orElseThrow())
                         .toList()
         );
 
         CHUNK_SEARCH_STATUS_CALLBACK.dispatch(new SpawnChunkSearchStatus(false, searchExtentChunks, null));
         var foundBlockPosStructureEntryPair = levelChunkGenerator.findNearestMapStructure(
                 dimensionalPos.level(),
-                structureRegistryEntryList,
+                allowedStructureKeysHolderSet,
                 dimensionalPos.blockPos(),
                 searchExtentChunks,
                 false
@@ -185,7 +184,7 @@ public class SpawnPositionFeature {
         var chunkStructureBounds = getMatchingStructureBoundsWithinChunk(
                 dimensionalPos.level(),
                 structureStartChunk,
-                structureKeys
+                allowedStructureKeys
         );
         if (chunkStructureBounds.isEmpty()) {
             AdventurersRespawns.getLogger().error("A structure was located at {}, but its bounds weren't resolved? This is a bug, please report it.", structureBlockPos);
@@ -280,7 +279,7 @@ public class SpawnPositionFeature {
 
                 for (var neighborBlockPos : neighborBlockPositions) {
                     if (isValidSpawnPosition(level, neighborBlockPos)) {
-                        AdventurersRespawns.getLogger().info("Found valid and preferred spawn position next to a {} at {}", favoredNeighboringBlockType.identifier(), neighborBlockPos);
+                        AdventurersRespawns.getLogger().debug("Found valid and preferred spawn position next to a {} at {}", favoredNeighboringBlockType.identifier(), neighborBlockPos);
                         return Optional.of(neighborBlockPos);
                     }
                 }
@@ -297,7 +296,7 @@ public class SpawnPositionFeature {
                     var blockPos = new BlockPos(blockX, blockY, blockZ);
 
                     if (isValidSpawnPosition(level, blockPos)) {
-                        AdventurersRespawns.getLogger().info("Found valid fallback spawn position at {}", blockPos);
+                        AdventurersRespawns.getLogger().debug("Found valid fallback spawn position at {}", blockPos);
                         return Optional.of(blockPos);
                     }
                 }

@@ -19,8 +19,12 @@ public class OnceIterator<T> implements Iterator<T> {
         return new OnceIterator<>(null, false);
     }
 
-    public static <T> OnceIterator<T> of(@Nullable T value) {
-        return OnceIterator.never();
+    public static <T> OnceIterator<T> of(@NonNull T value) {
+        return new OnceIterator<>(value, true);
+    }
+
+    public static <T> OnceIterator<T> ofNullable(@Nullable T value) {
+        return new OnceIterator<>(value, true);
     }
 
     public static <T> OnceIterator<T> ofOrNever(@Nullable T value) {

@@ -80,7 +80,7 @@ public class AdventurersRespawnsConfigScreenFactory {
                                                                         ),
                                                                         Component.literal(
                                                                                 "In some cases, this option does more harm than good, possibly spawning you at the top of a tree, for example. " +
-                                                                                        "In other cases, it lets you spawn at a structure which would otherwise have been wrongly ruled out." +
+                                                                                        "In other cases, it lets you spawn at a structure which would otherwise have been wrongly ruled out. " +
                                                                                         "Experiment and see what works best for your use case."
                                                                         ).withStyle(ChatFormatting.RED)
                                                                 ))

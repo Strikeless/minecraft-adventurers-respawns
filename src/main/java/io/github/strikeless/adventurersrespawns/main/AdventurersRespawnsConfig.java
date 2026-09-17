@@ -55,7 +55,7 @@ public class AdventurersRespawnsConfig {
             "structory:old_manor"
     ));
 
-    @SerialEntry(comment = "Blocks or block tags, next to which respawns will first be tried, in descending order of preference.\n")
+    @SerialEntry(comment = "Blocks or block tags, next to which respawns will first be tried, in descending order of preference.")
     public List<String> respawnNextToBlocks = new ArrayList<>(List.of(
             "#minecraft:beds",
             "minecraft:chest",
@@ -64,7 +64,7 @@ public class AdventurersRespawnsConfig {
     ));
 
     // TODO: Expose this in the modmenu GUI once respawn structures can be edited from there.
-    @SerialEntry(comment = "Whether to always respawn in the overworld, if the player died in the end or nether.\nCoordinates are translated as if the player had traveled through a portal.\n")
+    @SerialEntry(comment = "Whether to always respawn in the overworld, if the player died in the end or nether.\nCoordinates are translated as if the player had traveled through a portal.")
     public boolean respawnStructureAlwaysInOverworld = true;
 
     @SerialEntry
